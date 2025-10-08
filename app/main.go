@@ -115,7 +115,7 @@ func main() {
 		buff.Write(data)
 	}()
 
-	err = conn.parseResponse(buff.Bytes())
+	err = conn.parseResponse(data)
 	if err != nil {
 		log.Panicf("error while parsing response")
 	}
