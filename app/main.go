@@ -77,11 +77,11 @@ func (c *Conn) parseResponse(data []byte)(error){
 		return ERR_MESSAGE_SIZE
 	} 
 
-	correlationId := data[4:]
+	correlationId := data[4:8]
 	expectedCorrlId := [4]byte{7}
 
 	if ok := bytes.Equal(expectedCorrlId[:], correlationId); !ok{
-		log.Printf("expected correlation id not met correlationId %v\n", correlationId)	
+		log.Printf("expected correlation id not met correlationId %v\n", expectedCorrlId)	
 		return ERR_PARSE_CONN	
 	}
 
