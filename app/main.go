@@ -105,13 +105,6 @@ func main() {
 		log.Printf("error while listening to the connection %v\n", err)
 		os.Exit(1)
 	}
-	defer func (){
-		err := conn.conn.Close()
-		if err != nil {
-			log.Panicf("error while closing tcp connections %v\n", err)
-		}
-	}()
-
 	buff := bytes.Buffer{}
 	data := make([]byte,1024)
 	go func(){
