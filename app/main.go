@@ -45,19 +45,17 @@ func (c *Conn) Listen() (error){
 
 //kafka responses are in this format: message_size, header, body
 func (c *Conn) Read(data []byte)([]byte,error){
-	for {
-		_, err := c.conn.Read(data)
-		if err != nil {
-			log.Printf("error while receiving data from conn %v\n",err)
-			if err == io.EOF{
-				log.Println("EOF")
-				break
-			}
-			return nil,err
+	_, err := c.conn.Read(data)
+	if err != nil {
+		log.Printf("error while receiving data from conn %v\n",err)
+		if err == io.EOF{
+			log.Println("EOF")
+			return data, nil	
 		}
+		return nil,err
 	}
 	
-	return data, nil	
+	return data, nil
 }
 
 func (c *Conn) parseResponse(data []byte)(error){
