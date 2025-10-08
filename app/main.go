@@ -101,15 +101,13 @@ func main() {
 	}
 	buff := bytes.Buffer{}
 	data := make([]byte,1024)
-	go func(){
-		_, err := conn.Read(data)
-		if err != nil {
-			log.Panicf("error while reading from the connection %v\n", err)
-		}
-		buff.Write(data)
-	}()
+	res, err := conn.Read(data)
+	if err != nil {
+		log.Panicf("error while reading from the connection %v\n", err)
+	}
+	buff.Write(res)
 
-	err = conn.parseResponse(data)
+	err = conn.parseResponse(buff.Bytes())
 	if err != nil {
 		log.Panicf("error while parsing response")
 	}
