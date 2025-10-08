@@ -100,13 +100,11 @@ func main() {
 		address: "0.0.0.0:9092",
 		protocol: "tcp",
 	}
-	go func(){
-		err := conn.Listen()
-		if err != nil {
-			log.Printf("error while listening to the connection %v\n", err)
-			os.Exit(1)
-		}
-	}()
+	err := conn.Listen()
+	if err != nil {
+		log.Printf("error while listening to the connection %v\n", err)
+		os.Exit(1)
+	}
 	defer func (){
 		err := conn.conn.Close()
 		if err != nil {
@@ -124,19 +122,19 @@ func main() {
 		buff.Write(data)
 	}()
 
-	err := conn.parseResponse(buff.Bytes())
+	err = conn.parseResponse(buff.Bytes())
 	if err != nil {
 		log.Panicf("error while parsing response")
 	}
 
 	//flash down the first 4 bytes before accessing the correlation id
-	curr := buff.Next(4)
+	//curr := buff.Next(4)
 	//conver the the bytes format to BigEndian format
-	msgSize := binary.BigEndian.Uint32(curr)
-	log.Printf("message size received %v\n", msgSize)
+	//msgSize := binary.BigEndian.Uint32(curr)
+	//log.Printf("message size received %v\n", msgSize)
 
 	//header 
-	correlationId := buff.Next(4)
+	correlationId := data[4:8] 
 	headerSize := binary.BigEndian.Uint32(correlationId)
 	
 	
@@ -144,5 +142,8 @@ func main() {
 	resp := binary.BigEndian.AppendUint32(respBytes,headerSize)
 	log.Printf("correlation Id is %v\n header size %v\n", correlationId, headerSize)
 
-	conn.conn.Write(resp)
+	_,err = conn.conn.Write(resp)
+	if err != nil {
+		log.Panicf("error while writing to the connection %v\n", err)
+	}
 }
