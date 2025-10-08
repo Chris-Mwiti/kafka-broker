@@ -79,7 +79,7 @@ func (c *Conn) parseResponse(data []byte)(error){
 
 	size := binary.BigEndian.Uint32(data[:4])
 	if int(size) != len(data){
-		log.Printf("the message size payload is short")
+		log.Printf("the message size payload is short %d\n", size)
 		return ERR_MESSAGE_SIZE
 	}
 	
