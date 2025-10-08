@@ -100,11 +100,13 @@ func main() {
 		address: "0.0.0.0:9092",
 		protocol: "tcp",
 	}
-	err := conn.Listen()
-	if err != nil {
-		log.Printf("error while listening to the connection %v\n", err)
-		os.Exit(1)
-	}
+	go func(){
+		err := conn.Listen()
+		if err != nil {
+			log.Printf("error while listening to the connection %v\n", err)
+			os.Exit(1)
+		}
+	}()
 	defer func (){
 		err := conn.conn.Close()
 		if err != nil {
@@ -122,7 +124,7 @@ func main() {
 		buff.Write(data)
 	}()
 
-	err = conn.parseResponse(buff.Bytes())
+	err := conn.parseResponse(buff.Bytes())
 	if err != nil {
 		log.Panicf("error while parsing response")
 	}
