@@ -45,17 +45,19 @@ func (c *Conn) Listen() (error){
 
 //kafka responses are in this format: message_size, header, body
 func (c *Conn) Read(data []byte)([]byte,error){
-	_, err := c.conn.Read(data)
-	if err != nil {
-		log.Printf("error while receiving data from conn %v\n",err)
-		if err == io.EOF{
-			log.Println("EOF")
-			return data, nil	
+	for {
+		_, err := c.conn.Read(data)
+		if err != nil {
+			log.Printf("error while receiving data from conn %v\n",err)
+			if err == io.EOF{
+				log.Println("EOF")
+				break
+			}
+			return nil,err
 		}
-		return nil,err
 	}
 	
-	return data, nil
+	return data, nil	
 }
 
 func (c *Conn) parseResponse(data []byte)(error){
@@ -69,6 +71,7 @@ func (c *Conn) parseResponse(data []byte)(error){
 	//so the total bits of data expected is 64bits...the relative data byte array should be [8]byte{}
 
 	//@todo: How do i check that the first 4 bytes of the data are present?
+	log.Printf("the following is the data is: %v\n", data)
 
 	if len(data) < 8 {
 		log.Printf("error. the received data has a short message size: %v", len(data))
