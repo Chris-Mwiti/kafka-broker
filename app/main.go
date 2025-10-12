@@ -32,32 +32,69 @@ func (c *Conn) Listen() (error){
 		return err
 	}
 
-	conn, err := l.Accept()
-	if err != nil {
-		log.Printf("error while accepting connections %v\n", err)
-		return err
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			log.Printf("error while accepting connections %v\n", err)
+			return err
+		}
+		//set the conn the the conn instance
+		c.conn = conn
+
+		go func(){
+			msg, err := c.read()
+			if err != nil {
+				//@todo: Think a way around this especially in terms of err groups
+				log.Printf("error while reading connection %v\n", err)
+			}
+			log.Printf("received msg: %v\n", msg)
+			err = c.write()
+			if err != nil {
+				log.Printf("error while writing to connection %v\n", err)
+			}
+		}()
 	}
 
-	//set the conn the the conn instance
-	c.conn = conn
-	return nil
 }
 
 //kafka responses are in this format: message_size, header, body
-func (c *Conn) Read(data []byte)([]byte,error){
-	for {
-		_, err := c.conn.Read(data)
-		if err != nil {
-			log.Printf("error while receiving data from conn %v\n",err)
-			if err == io.EOF{
-				log.Println("EOF")
-				break
-			}
-			return nil,err
-		}
-	}
+func (c *Conn) read()([]byte,error){
 	
+	data := make([]byte, 4096)
+	var buff bytes.Buffer
+	_, err := c.conn.Read(data)
+	buff.Write(data)
+	if err != nil {
+		log.Printf("error while receiving data from conn %v\n",err)
+		if err == io.EOF{
+			log.Println("EOF")
+			return data, nil
+		}
+		return nil,err
+	}
+
+	err = c.parseResponse(buff.Bytes())
+	if err != nil {
+		//@todo: Improve on the error handling logic
+		log.Printf("error while parsing response %v\n", err)
+	}
+	buff.Reset()
 	return data, nil	
+}
+
+func (c *Conn) write()(error){
+	//possibly the capacity will change
+	resp := make([]byte, 8)
+	binary.BigEndian.PutUint32(resp[0:4], 0)
+	binary.BigEndian.PutUint32(resp[4:8], 7)
+
+	_, err := c.conn.Write(resp)
+	if err != nil {
+		log.Printf("error while writing to the connection: %v\n", err)
+		return errors.New("err conn write")
+	}
+
+	return nil
 }
 
 func (c *Conn) parseResponse(data []byte)(error){
@@ -95,41 +132,11 @@ func main() {
 		address: "0.0.0.0:9092",
 		protocol: "tcp",
 	}
+
+	//create a listening go routine
 	err := conn.Listen()
 	if err != nil {
-		log.Printf("error while listening to the connection %v\n", err)
-		os.Exit(1)
-	}
-	buff := bytes.Buffer{}
-	data := make([]byte,1024)
-	_, err = conn.Read(data)
-	if err != nil {
-		log.Panicf("error while reading from the connection %v\n", err)
-	}
-	buff.Write(data)
-
-	err = conn.parseResponse(buff.Bytes())
-	if err != nil {
-		log.Panicf("error while parsing response")
+		log.Panicf("error while listening to connection status: %v\n", err)
 	}
 
-	//flash down the first 4 bytes before accessing the correlation id
-	//curr := buff.Next(4)
-	//conver the the bytes format to BigEndian format
-	//msgSize := binary.BigEndian.Uint32(curr)
-	//log.Printf("message size received %v\n", msgSize)
-
-	//header 
-	correlationId := data[4:8] 
-	headerSize := binary.BigEndian.Uint32(correlationId)
-	
-	
-	respBytes := make([]byte, 1024)
-	resp := binary.BigEndian.AppendUint32(respBytes,headerSize)
-	log.Printf("correlation Id is %v\n header size %v\n", correlationId, headerSize)
-
-	_,err = conn.conn.Write(resp)
-	if err != nil {
-		log.Panicf("error while writing to the connection %v\n", err)
-	}
 }
