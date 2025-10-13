@@ -48,7 +48,7 @@ func (c *Conn) Listen() (error){
 				log.Printf("error while reading connection %v\n", err)
 			}
 			log.Printf("received msg: %v\n", msg)
-			err = c.write()
+			err = c.write(msg)
 			if err != nil {
 				log.Printf("error while writing to connection %v\n", err)
 			}
@@ -73,20 +73,23 @@ func (c *Conn) read()([]byte,error){
 		return nil,err
 	}
 
-	err = c.parseResponse(buff.Bytes())
+	correlationId,err := c.parseResponse(buff.Bytes())
 	if err != nil {
 		//@todo: Improve on the error handling logic
 		log.Printf("error while parsing response %v\n", err)
 	}
 	buff.Reset()
-	return data, nil	
+	return correlationId, nil	
 }
 
-func (c *Conn) write()(error){
+func (c *Conn) write(payload []byte)(error){
 	//possibly the capacity will change
 	resp := make([]byte, 8)
 	binary.BigEndian.PutUint32(resp[0:4], 0)
-	binary.BigEndian.PutUint32(resp[4:8], 7)
+
+	//convert the payload structure to fit the BigEndian format
+	u32CorrelationId := binary.BigEndian.Uint32(payload)
+	binary.BigEndian.PutUint32(resp[4:8], u32CorrelationId)
 
 	_, err := c.conn.Write(resp)
 	if err != nil {
@@ -97,7 +100,7 @@ func (c *Conn) write()(error){
 	return nil
 }
 
-func (c *Conn) parseResponse(data []byte)(error){
+func (c *Conn) parseResponse(data []byte)([]byte,error){
 	//check that the message size is a 32 bits(signed) 
 	
 	//payload structure: []byte{message_size+header+body}
@@ -112,19 +115,24 @@ func (c *Conn) parseResponse(data []byte)(error){
 
 	if len(data) < 8 {
 		log.Printf("error. the received data has a short message size: %v", len(data))
-		return ERR_MESSAGE_SIZE
+		return nil,ERR_MESSAGE_SIZE
 	} 
 
-	correlationId := data[4:8]
-	expectedCorrlId := [4]byte{7}
 
-	if ok := bytes.Equal(expectedCorrlId[:], correlationId); !ok{
-		log.Printf("expected correlation id not met correlationId %v\n", expectedCorrlId)	
-		return ERR_PARSE_CONN	
-	}
+	//request payload
+	//@todo: Implment manipulation using byte buffers instead of byte storage itself
+	msgSize := data[0:4]
+	requestApiKey := data[4:6]
+	requestApiVersion := data[6:8]
+	correlationId := data[8:]
+
+	log.Printf("the following is the message size: %v\n",msgSize)
+	log.Printf("the following is the requestApiKey: %v\n",requestApiKey)
+	log.Printf("the following is the requestApiVersion: %v\n",requestApiVersion)
+	log.Printf("the following is the correlationId: %v\n",correlationId)
 
 
-	return nil
+	return correlationId, nil
 }
 
 func main() {
