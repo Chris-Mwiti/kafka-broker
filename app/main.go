@@ -84,12 +84,17 @@ func (c *Conn) read()([]byte,error){
 
 func (c *Conn) write(payload []byte)(error){
 	//possibly the capacity will change
-	resp := make([]byte, 8)
+	resp := make([]byte, 16)
 	binary.BigEndian.PutUint32(resp[0:4], 0)
 
 	//convert the payload structure to fit the BigEndian format
 	u32CorrelationId := binary.BigEndian.Uint32(payload)
 	binary.BigEndian.PutUint32(resp[4:8], u32CorrelationId)
+
+
+	//set the request api version (duplicate from the request)
+	requestApiVersion := binary.BigEndian.Uint16([]byte{35})
+	binary.BigEndian.PutUint16(resp[8:10], requestApiVersion)
 
 	_, err := c.conn.Write(resp)
 	if err != nil {
@@ -128,7 +133,7 @@ func (c *Conn) parseResponse(data []byte)([]byte,error){
 
 	log.Printf("the following is the message size: %v\n",msgSize)
 	log.Printf("the following is the requestApiKey: %v\n",requestApiKey)
-	log.Printf("the following is the requestApiVersion: %v\n",requestApiVersion)
+	log.Printf("the following is the requestApiVersion: %v\n", binary.BigEndian.Uint16(requestApiVersion))
 	log.Printf("the following is the correlationId: %v\n",correlationId)
 
 
