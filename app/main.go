@@ -98,10 +98,10 @@ func (c *Conn) write(payload *ParseResponse)(error){
 	//@notes: various api requests which is identified by the request_api_key
 	//@notes: the api requests can support various api versions range
 	if ok := payload.containsApiVersion(); !ok{
-		errCode := binary.BigEndian.Uint16([]byte{35})
+		errCode := binary.BigEndian.Uint16([]byte{0,35})
 		binary.BigEndian.PutUint16(resp[8:10],errCode)
 	} else {
-		errCode := binary.BigEndian.Uint16([]byte{0})
+		errCode := binary.BigEndian.Uint16([]byte{0,0})
 		binary.BigEndian.PutUint16(resp[8:10],errCode)
 	}
 	_, err := c.conn.Write(resp)
@@ -130,7 +130,7 @@ func (pr *ParseResponse) containsApiVersion()(bool){
 	prVersion := binary.BigEndian.Uint16(pr.RequestApiVersion)
 	for _,version := range latestApiVersions{
 
-		if version,_ := strconv.Atoi(version); int(prVersion) == version {
+		if v,_ := strconv.Atoi(version); int(prVersion) == v {
 			return true
 		}
 
