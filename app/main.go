@@ -84,7 +84,7 @@ func (c *Conn) read()([]byte,error){
 
 func (c *Conn) write(payload []byte)(error){
 	//possibly the capacity will change
-	resp := make([]byte, 16)
+	resp := make([]byte, 24)
 	binary.BigEndian.PutUint32(resp[0:4], 0)
 
 	//convert the payload structure to fit the BigEndian format
@@ -94,7 +94,7 @@ func (c *Conn) write(payload []byte)(error){
 
 	//set the request api version (duplicate from the request)
 	requestApiVersion := binary.BigEndian.Uint16([]byte{35})
-	binary.BigEndian.PutUint16(resp[8:10], requestApiVersion)
+	binary.BigEndian.PutUint16(resp[8:], requestApiVersion)
 
 	_, err := c.conn.Write(resp)
 	if err != nil {
