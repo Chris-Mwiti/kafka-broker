@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -18,6 +19,7 @@ var _ = os.Exit
 var ERR_READ_CONN = errors.New("error while reading from the connection")
 var ERR_PARSE_CONN = errors.New("error while parsing the connection data")
 var ERR_MESSAGE_SIZE = errors.New("error the payload message size is not met")
+var ERR_EOF = errors.New("EOF")
 
 type Conn struct {
 	protocol string
@@ -58,7 +60,7 @@ func (c *Conn) Listen() (error){
 }
 
 //kafka responses are in this format: message_size, header, body
-func (c *Conn) read()([]byte,error){
+func (c *Conn) read()(*ParseResponse,error){
 	
 	data := make([]byte, 4096)
 	var buff bytes.Buffer
@@ -68,35 +70,40 @@ func (c *Conn) read()([]byte,error){
 		log.Printf("error while receiving data from conn %v\n",err)
 		if err == io.EOF{
 			log.Println("EOF")
-			return data, nil
+			return nil, ERR_EOF 
 		}
 		return nil,err
 	}
 
-	correlationId,err := c.parseResponse(buff.Bytes())
+	response,err := c.parseResponse(buff.Bytes())
 	if err != nil {
 		//@todo: Improve on the error handling logic
 		log.Printf("error while parsing response %v\n", err)
 	}
 	buff.Reset()
-	return correlationId, nil	
+	return &response, nil	
 }
 
-func (c *Conn) write(payload []byte)(error){
+func (c *Conn) write(payload *ParseResponse)(error){
 	//possibly the capacity will change
 	resp := make([]byte, 24)
+	//@todo: dynamic assignment of msgsize bytes size
 	binary.BigEndian.PutUint32(resp[0:4], 0)
 
 	//convert the payload structure to fit the BigEndian format
-	u32CorrelationId := binary.BigEndian.Uint32(payload)
+	u32CorrelationId := binary.BigEndian.Uint32(payload.RequestCorrelationId)
 	binary.BigEndian.PutUint32(resp[4:8], u32CorrelationId)
 
-
-	//set the request api version (duplicate from the request)
-	requestApiVersion := binary.BigEndian.Uint16([]byte{35})
-	log.Printf("request api version u16 format %v\n", requestApiVersion)
-	binary.BigEndian.PutUint16(resp[8:], requestApiVersion)
-
+	//@notes: the request api version is a signed 16 bit integer
+	//@notes: various api requests which is identified by the request_api_key
+	//@notes: the api requests can support various api versions range
+	if ok := payload.containsApiVersion(); !ok{
+		errCode := binary.BigEndian.Uint16([]byte{35})
+		binary.BigEndian.PutUint16(resp[8:10],errCode)
+	} else {
+		errCode := binary.BigEndian.Uint16([]byte{0})
+		binary.BigEndian.PutUint16(resp[8:10],errCode)
+	}
 	_, err := c.conn.Write(resp)
 	if err != nil {
 		log.Printf("error while writing to the connection: %v\n", err)
@@ -106,7 +113,31 @@ func (c *Conn) write(payload []byte)(error){
 	return nil
 }
 
-func (c *Conn) parseResponse(data []byte)([]byte,error){
+//@notes: the function is still under development
+type ParseResponse struct {
+	RequestMsgSize []byte
+	RequestApiKey []byte
+	RequestApiVersion []byte
+	RequestCorrelationId []byte
+}
+
+func (pr *ParseResponse) containsApiVersion()(bool){
+	
+	latestApiVersions := []string{"0", "1", "2", "3", "4"}
+	if pr.RequestApiVersion != nil {
+		return false	
+	}
+	prVersion := binary.BigEndian.Uint16(pr.RequestApiVersion)
+	for _,version := range latestApiVersions{
+
+		if version,_ := strconv.Atoi(version); int(prVersion) == version {
+			return true
+		}
+
+	}
+	return false
+}
+func (c *Conn) parseResponse(data []byte)(ParseResponse,error){
 	//check that the message size is a 32 bits(signed) 
 	
 	//payload structure: []byte{message_size+header+body}
@@ -121,7 +152,7 @@ func (c *Conn) parseResponse(data []byte)([]byte,error){
 
 	if len(data) < 8 {
 		log.Printf("error. the received data has a short message size: %v", len(data))
-		return nil,ERR_MESSAGE_SIZE
+		return ParseResponse{},ERR_MESSAGE_SIZE
 	} 
 
 
@@ -137,8 +168,15 @@ func (c *Conn) parseResponse(data []byte)([]byte,error){
 	log.Printf("the following is the requestApiVersion: %v\n", binary.BigEndian.Uint16(requestApiVersion))
 	log.Printf("the following is the correlationId: %v\n",correlationId)
 
+	response := ParseResponse{
+		RequestMsgSize: msgSize,
+		RequestApiKey: requestApiKey,
+		RequestApiVersion: requestApiVersion,
+		RequestCorrelationId: correlationId,
+	}
 
-	return correlationId, nil
+
+	return response, nil
 }
 
 func main() {
