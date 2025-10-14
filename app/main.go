@@ -94,6 +94,7 @@ func (c *Conn) write(payload []byte)(error){
 
 	//set the request api version (duplicate from the request)
 	requestApiVersion := binary.BigEndian.Uint16([]byte{35})
+	log.Printf("request api version u16 format %v\n", requestApiVersion)
 	binary.BigEndian.PutUint16(resp[8:], requestApiVersion)
 
 	_, err := c.conn.Write(resp)
