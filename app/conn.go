@@ -108,11 +108,22 @@ func (c *Conn) write(payload *ParseRequest)(error){
 	resArrLen := []byte{4}
 	resp = append(resp, resArrLen...)
 
+	//setting of the api key
+	apiKey := binary.BigEndian.Uint16(payload.RequestApiKey)
+	binary.BigEndian.AppendUint16(resp,apiKey)
+
 	minV := binary.BigEndian.Uint16([]byte{0,0})
 	maxV := binary.BigEndian.Uint16([]byte{0,4})
 
 	binary.BigEndian.AppendUint16(resp,minV)
 	binary.BigEndian.AppendUint16(resp,maxV)
+
+	//at the end eventually set the size of the array
+	size := len(resp)
+	sb := []byte{0,0,0,byte(size)}
+	uSb := binary.BigEndian.Uint32(sb)
+	binary.BigEndian.PutUint32(resp[0:4], uSb)
+
 	_, err := c.conn.Write(resp)
 	if err != nil {
 		log.Printf("error while writing to the connection: %v\n", err)
