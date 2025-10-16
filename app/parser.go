@@ -22,9 +22,9 @@ func (pr *ParseRequest) containsApiVersion()(bool){
 		return false	
 	}
 	prVersion := binary.BigEndian.Uint16(pr.RequestApiVersion)
-	for _,version := range latestApiVersions{
+	for _,v := range latestApiVersions{
 
-		if v,_ := strconv.Atoi(version); int(prVersion) == v {
+		if version,_ := strconv.Atoi(v); int(prVersion) == version {
 			return true
 		}
 

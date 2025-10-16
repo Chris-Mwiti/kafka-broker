@@ -101,7 +101,7 @@ func (c *Conn) write(payload *ParseRequest)(error){
 	}
 
 	//the format of the response expected is as follows:
-	//msgSize -> correlationId -> errCode -> array-content-lenght-> api_key -> minV -> maxV
+	//msgSize -> correlationId -> errCode -> array-content-lenght -> api_key -> minV -> maxV
 
 	//set the response array content len
 	resp = ensureCap(resp, 17)
