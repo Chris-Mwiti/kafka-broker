@@ -84,6 +84,16 @@ func (c *Conn) write(payload *ParseRequest)(error){
 	//possibly the capacity will change
 	resp := make([]byte, 0)
 	resp = ensureCap(resp,10)
+
+	//at the end eventually set the size of the array
+	//@note: the msg size should not count itself
+	//size := len(resp)
+	//@notes: actually recommended tp be set at 14
+	sb := []byte{0,0,0,14}
+	uSb := binary.BigEndian.Uint32(sb)
+	binary.BigEndian.PutUint32(resp[0:4], uSb)
+
+
 	
 	//convert the payload structure to fit the BigEndian format
 	u32CorrelationId := binary.BigEndian.Uint32(payload.RequestCorrelationId)
@@ -119,15 +129,7 @@ func (c *Conn) write(payload *ParseRequest)(error){
 	binary.BigEndian.AppendUint16(resp,minV)
 	binary.BigEndian.AppendUint16(resp,maxV)
 
-	//at the end eventually set the size of the array
-	//@note: the msg size should not count itself
-	//size := len(resp)
-	//@notes: actually recommended tp be set at 14
-	sb := []byte{0,0,0,14}
-	uSb := binary.BigEndian.Uint32(sb)
-	binary.BigEndian.PutUint32(resp[0:4], uSb)
-
-	_, err := c.conn.Write(resp)
+		_, err := c.conn.Write(resp)
 	if err != nil {
 		log.Printf("error while writing to the connection: %v\n", err)
 		return errors.New("err conn write")
