@@ -17,17 +17,13 @@ type ParseRequest struct {
 
 func (pr *ParseRequest) containsApiVersion()(bool){
 	
-	latestApiVersions := []string{"0", "1", "2", "3", "4"}
-	if pr.RequestApiVersion != nil {
+	if pr.RequestApiVersion == nil {
 		return false	
 	}
 	prVersion := binary.BigEndian.Uint16(pr.RequestApiVersion)
-	for _,v := range latestApiVersions{
-
-		if version,_ := strconv.Atoi(v); int(prVersion) == version {
-			return true
-		}
-
+	
+	if int(prVersion) >= 0 && int(prVersion) <= 4 {
+		return true
 	}
 	return false
 }

@@ -92,9 +92,14 @@ func (c *Conn) write(payload *ParseRequest)(error){
 	//@notes: the request api version is a signed 16 bit integer
 	//@notes: various api requests which is identified by the request_api_key
 	//@notes: the api requests can support various api versions range
-	errCode := binary.BigEndian.Uint16([]byte{0,0})
-	binary.BigEndian.PutUint16(resp[8:10],errCode)
-
+	if ok := payload.containsApiVersion(); !ok {
+		errCode := []byte{0,35}
+		binary.BigEndian.PutUint16(resp[8:10], binary.BigEndian.Uint16(errCode))
+	} else {
+		errCode := []byte{0,0}
+		binary.BigEndian.PutUint16(resp[8:10], binary.BigEndian.Uint16(errCode))
+	}
+	
 	//the format of the response expected is as follows:
 	//msgSize -> correlationId -> errCode -> array-content-lenght -> api_key -> minV -> maxV
 
@@ -117,6 +122,7 @@ func (c *Conn) write(payload *ParseRequest)(error){
 	//at the end eventually set the size of the array
 	//@note: the msg size should not count itself
 	//size := len(resp)
+	//@notes: actually recommended tp be set at 14
 	sb := []byte{0,0,0,14}
 	uSb := binary.BigEndian.Uint32(sb)
 	binary.BigEndian.PutUint32(resp[0:4], uSb)
