@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/binary"
 	"log"
-	"strconv"
 )
 
 //@notes: the function is still under development
