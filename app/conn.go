@@ -39,14 +39,7 @@ func (c *Conn) Listen() (error){
 		c.conn = conn
 
 		go func(){
-
-			msg, err := c.read()
-			if err != nil {
-				//@todo: Think a way around this especially in terms of err groups
-				log.Printf("error while reading connection %v\n", err)
-			}
-			log.Printf("received msg: %v\n", msg)
-			err = c.write(msg)
+			err := c.HandleConn()
 			if err != nil {
 				log.Printf("error while writing to connection %v\n", err)
 			}
@@ -56,28 +49,34 @@ func (c *Conn) Listen() (error){
 }
 
 //kafka responses are in this format: message_size, header, body
-func (c *Conn) read()(*ParseRequest,error){
-	
-	data := make([]byte, 4096)
-	var buff bytes.Buffer
-	_, err := c.conn.Read(data)
-	buff.Write(data)
-	if err != nil {
-		log.Printf("error while receiving data from conn %v\n",err)
-		if err == io.EOF{
-			log.Println("EOF")
-			return nil, ERR_EOF 
+func (c *Conn) HandleConn()(error){
+	buff :=  new(bytes.Buffer)
+	for {
+		buff.Reset()
+		data := make([]byte, 4096)
+		_, err := c.conn.Read(data)
+		buff.Write(data)
+		if err != nil {
+			log.Printf("error while receiving data from conn %v\n",err)
+			if err == io.EOF{
+				log.Println("EOF")
+				return ERR_EOF 
+			}
+			return err
 		}
-		return nil,err
-	}
+		response,err := c.parseRequest(buff.Bytes())
+		if err != nil {
+			//@todo: Improve on the error handling logic
+			log.Printf("error while parsing response %v\n", err)
+			return err
 
-	response,err := c.parseRequest(buff.Bytes())
-	if err != nil {
-		//@todo: Improve on the error handling logic
-		log.Printf("error while parsing response %v\n", err)
+		}
+		err = c.write(&response)
+		if err != nil {
+			log.Printf("error while writing to the connection: %v\n", err)
+			return err
+		}
 	}
-	buff.Reset()
-	return &response, nil	
 }
 
 
