@@ -89,7 +89,7 @@ func (c *Conn) write(payload *ParseRequest)(error){
 	//@note: the msg size should not count itself
 	//size := len(resp)
 	//@notes: actually recommended tp be set at 14
-	sb := []byte{0,0,0,14}
+	sb := []byte{0,0,0,19}
 	uSb := binary.BigEndian.Uint32(sb)
 	binary.BigEndian.PutUint32(resp[0:4], uSb)
 
