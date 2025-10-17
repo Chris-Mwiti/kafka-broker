@@ -114,7 +114,7 @@ func (c *Conn) write(payload *ParseRequest)(error){
 	//msgSize -> correlationId -> errCode -> array-content-lenght -> api_key -> minV -> maxV
 
 	//set the response array content len
-	resp = ensureCap(resp, 17)
+	resp = ensureCap(resp, 23)
 	resp[10] = 2
 
 	//setting of the api key
@@ -132,6 +132,7 @@ func (c *Conn) write(payload *ParseRequest)(error){
 
 	//tag buffer
 	resp[17] = 0
+	binary.BigEndian.AppendUint32(resp,binary.BigEndian.Uint32([]byte{0,0,0,0}))
 
 		_, err := c.conn.Write(resp)
 	if err != nil {
