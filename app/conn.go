@@ -39,6 +39,7 @@ func (c *Conn) Listen() (error){
 		c.conn = conn
 
 		go func(){
+
 			msg, err := c.read()
 			if err != nil {
 				//@todo: Think a way around this especially in terms of err groups
