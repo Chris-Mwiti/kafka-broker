@@ -125,14 +125,14 @@ func (c *Conn) write(payload *ParseRequest)(error){
 	minV := binary.BigEndian.Uint16([]byte{0,0})
 	maxV := binary.BigEndian.Uint16([]byte{0,4})
 
-	binary.BigEndian.AppendUint16(resp,minV)
-	binary.BigEndian.AppendUint16(resp,maxV)
+	binary.BigEndian.PutUint16(resp[13:15],minV)
+	binary.BigEndian.PutUint16(resp[15:17],maxV)
 
 	resp = ensureCap(resp, 23)
 
 	//tag buffer
 	resp[17] = 0
-	binary.BigEndian.AppendUint32(resp,binary.BigEndian.Uint32([]byte{0,0,0,0}))
+	binary.BigEndian.PutUint32(resp[18:22],binary.BigEndian.Uint32([]byte{0,0,0,0}))
 
 		_, err := c.conn.Write(resp)
 	if err != nil {
