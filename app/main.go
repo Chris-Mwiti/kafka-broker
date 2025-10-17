@@ -26,3 +26,4 @@ func main() {
 	log.Println("waiting for all connections to be completed")
 	wg.Wait()
 }
+
