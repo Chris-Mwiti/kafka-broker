@@ -115,8 +115,7 @@ func (c *Conn) write(payload *ParseRequest)(error){
 
 	//set the response array content len
 	resp = ensureCap(resp, 17)
-	resArrLen := []byte{4}
-	resp = append(resp, resArrLen...)
+	resp[10] = 2
 
 	//setting of the api key
 	apiKey := binary.BigEndian.Uint16(payload.RequestApiKey)
@@ -128,6 +127,11 @@ func (c *Conn) write(payload *ParseRequest)(error){
 
 	binary.BigEndian.AppendUint16(resp,minV)
 	binary.BigEndian.AppendUint16(resp,maxV)
+
+	resp = ensureCap(resp, 18)
+
+	//tag buffer
+	resp[17] = 0
 
 		_, err := c.conn.Write(resp)
 	if err != nil {
