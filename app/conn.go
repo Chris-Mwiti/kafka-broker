@@ -119,7 +119,7 @@ func (c *Conn) write(payload *ParseRequest)(error){
 
 	//setting of the api key
 	apiKey := binary.BigEndian.Uint16(payload.RequestApiKey)
-	binary.BigEndian.AppendUint16(resp,apiKey)
+	binary.BigEndian.PutUint16(resp[11:13],apiKey)
 
 	//setting the versions of the kafka headers
 	minV := binary.BigEndian.Uint16([]byte{0,0})
