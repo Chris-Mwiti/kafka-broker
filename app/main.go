@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"sync"
 )
 
 func main() {
@@ -11,9 +12,17 @@ func main() {
 	}
 
 	//create a listening go routine
-	err := conn.Listen()
-	if err != nil {
-		log.Panicf("error while listening to connection status: %v\n", err)
-	}
+	var wg sync.WaitGroup
 
+	wg.Add(1)
+	go func(){
+		defer wg.Done()
+		err := conn.Listen()
+		if err != nil {
+			log.Panicf("error while listening to connection status: %v\n", err)
+		}
+	}()
+
+	log.Println("waiting for all connections to be completed")
+	wg.Wait()
 }
