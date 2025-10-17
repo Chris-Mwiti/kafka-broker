@@ -50,6 +50,7 @@ func (c *Conn) Listen() (error){
 
 //kafka responses are in this format: message_size, header, body
 func (c *Conn) HandleConn()(error){
+	defer c.conn.Close()
 	buff :=  new(bytes.Buffer)
 	for {
 		buff.Reset()
