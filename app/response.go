@@ -138,6 +138,7 @@ func NewApiVersionResponse(req *ParseRequest) (*ApiVersionResponse){
 			errorCode: req.ErrorCode(),
 			apiKeys: []apiKeyVersion{
 				newApiKeyVersion(18,0,4),
+				newApiKeyVersion(75,0,0),
 			},
 		},
 	}
