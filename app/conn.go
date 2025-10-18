@@ -53,6 +53,7 @@ func (c *Conn) HandleConn()(error){
 	defer c.conn.Close()
 	buff :=  new(bytes.Buffer)
 	for {
+		buff.Reset()
 		data := make([]byte, 100)
 		_, err := c.conn.Read(data)
 		buff.Write(data)
@@ -81,59 +82,13 @@ func (c *Conn) HandleConn()(error){
 
 
 func (c *Conn) write(payload *ParseRequest)(error){
-	//possibly the capacity will change
-	resp := make([]byte, 0)
-	resp = ensureCap(resp,10)
-
-	//at the end eventually set the size of the array
-	//@note: the msg size should not count itself
-	//size := len(resp)
-	//@notes: actually recommended tp be set at 14
-	uSb := binary.BigEndian.Uint32(payload.RequestMsgSize)
-	binary.BigEndian.PutUint32(resp[0:4], uSb)
-
-
-	
-	//convert the payload structure to fit the BigEndian format
-	u32CorrelationId := binary.BigEndian.Uint32(payload.RequestCorrelationId)
-	binary.BigEndian.PutUint32(resp[4:8], u32CorrelationId)
-
-	//@notes: the request api version is a signed 16 bit integer
-	//@notes: various api requests which is identified by the request_api_key
-	//@notes: the api requests can support various api versions range
-	if ok := payload.containsApiVersion(); !ok {
-		errCode := []byte{0,35}
-		binary.BigEndian.PutUint16(resp[8:10], binary.BigEndian.Uint16(errCode))
-	} else {
-		errCode := []byte{0,0}
-		binary.BigEndian.PutUint16(resp[8:10], binary.BigEndian.Uint16(errCode))
+	res := NewApiVersionResponse(payload)
+	buff,err := res.Encode()
+	if err != nil {
+		log.Printf("error while encoding response: %v\n", err)
 	}
-	
-	//the format of the response expected is as follows:
-	//msgSize -> correlationId -> errCode -> array-content-lenght -> api_key -> minV -> maxV
 
-	//set the response array content len
-	resp = ensureCap(resp, 17)
-	resp[10] = 2
-
-	//setting of the api key
-	apiKey := binary.BigEndian.Uint16(payload.RequestApiKey)
-	binary.BigEndian.PutUint16(resp[11:13],apiKey)
-
-	//setting the versions of the kafka headers
-	minV := binary.BigEndian.Uint16([]byte{0,0})
-	maxV := binary.BigEndian.Uint16([]byte{0,4})
-
-	binary.BigEndian.PutUint16(resp[13:15],minV)
-	binary.BigEndian.PutUint16(resp[15:17],maxV)
-
-	resp = ensureCap(resp, 23)
-
-	//tag buffer
-	resp[17] = 0
-	binary.BigEndian.PutUint32(resp[18:22],binary.BigEndian.Uint32([]byte{0,0,0,0}))
-
-		_, err := c.conn.Write(resp)
+	_, err = c.conn.Write(buff)
 	if err != nil {
 		log.Printf("error while writing to the connection: %v\n", err)
 		return errors.New("err conn write")

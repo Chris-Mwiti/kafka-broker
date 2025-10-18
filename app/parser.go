@@ -7,24 +7,29 @@ import (
 
 //@notes: the function is still under development
 type ParseRequest struct {
-	RequestMsgSize []byte
-	RequestApiKey []byte
-	RequestApiVersion []byte
-	RequestCorrelationId []byte
+	RequestMsgSize uint32
+	RequestApiKey uint16
+	RequestApiVersion uint16
+	RequestCorrelationId uint32
 }
 
 
 func (pr *ParseRequest) containsApiVersion()(bool){
 	
-	if pr.RequestApiVersion == nil {
-		return false	
-	}
-	prVersion := binary.BigEndian.Uint16(pr.RequestApiVersion)
-	
-	if int(prVersion) >= 0 && int(prVersion) <= 4 {
+	if int(pr.RequestApiVersion) >= 0 && int(pr.RequestApiVersion) <= 4 {
 		return true
 	}
 	return false
+}
+
+func (pr *ParseRequest) ErrorCode()(uint16) {
+	if ok := pr.containsApiVersion(); !ok {
+		errCode := binary.BigEndian.Uint16([]byte{0,35})
+		return errCode
+	}
+
+	errCode := binary.BigEndian.Uint16([]byte{0,0})
+	return errCode
 }
 
 func (c *Conn) parseRequest(data []byte)(ParseRequest,error){
@@ -48,15 +53,15 @@ func (c *Conn) parseRequest(data []byte)(ParseRequest,error){
 
 	//request payload
 	//@todo: Implment manipulation using byte buffers instead of byte storage itself
-	msgSize := data[0:4]
-	requestApiKey := data[4:6]
-	requestApiVersion := data[6:8]
-	correlationId := data[8:]
+	msgSizeBytes := data[0:4]
+	requestApiKeyBytes := data[4:6]
+	requestApiVersionBytes := data[6:8]
+	correlationIdBytes := data[8:]
 
-	log.Printf("the following is the message size: %v\n",msgSize)
-	log.Printf("the following is the requestApiKey: %v\n",requestApiKey)
-	log.Printf("the following is the requestApiVersion: %v\n", binary.BigEndian.Uint16(requestApiVersion))
-	log.Printf("the following is the correlationId: %v\n",correlationId)
+	msgSize := binary.BigEndian.Uint32(msgSizeBytes)	
+	requestApiKey := binary.BigEndian.Uint16(requestApiKeyBytes)
+	requestApiVersion := binary.BigEndian.Uint16(requestApiVersionBytes)
+	correlationId := binary.BigEndian.Uint32(correlationIdBytes)
 
 	response := ParseRequest{
 		RequestMsgSize: msgSize,
