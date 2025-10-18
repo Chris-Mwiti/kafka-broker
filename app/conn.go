@@ -9,47 +9,11 @@ import (
 )
 
 type Conn struct {
-	protocol string
-	address string
 	conn net.Conn
-}
-
-func NewConn(proto,addr string)(*Conn){
-	return &Conn{
-		protocol: proto,
-		address: addr,
-	}
-}
-
-func (c *Conn) Listen() (error){
-	l, err := net.Listen(c.protocol, c.address)
-	if err != nil {
-		log.Printf("error while binding to port %s: %v\n", c.address, err)
-		return err
-	}
-
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			log.Printf("error while accepting connections %v\n", err)
-			return err
-		}
-		//set the conn the the conn instance
-		c.conn = conn
-
-		go func(){
-			err := c.HandleConn()
-			if err != nil {
-				log.Printf("error while writing to connection %v\n", err)
-			}
-		}()
-	}
-
 }
 
 //kafka responses are in this format: message_size, header, body
 func (c *Conn) HandleConn()(error){
-	defer c.conn.Close()
 	buff :=  new(bytes.Buffer)
 	for {
 		buff.Reset()

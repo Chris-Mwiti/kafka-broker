@@ -32,7 +32,7 @@ func (r *ApiVersionResponse) Encode() ([]byte, error){
 		return nil, err	
 	}
 
-	r.messageSize = uint32(buff.Len())
+	r.messageSize = uint32(buff.Len() + 4)
 	finalBuf := new(bytes.Buffer)
 
 	if err := binary.Write(finalBuf, binary.BigEndian, r.messageSize); err != nil {
