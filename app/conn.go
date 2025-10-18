@@ -54,7 +54,7 @@ func (c *Conn) HandleConn()(error){
 	buff :=  new(bytes.Buffer)
 	for {
 		buff.Reset()
-		data := make([]byte, 4096)
+		data := make([]byte, 100)
 		_, err := c.conn.Read(data)
 		buff.Write(data)
 		if err != nil {
@@ -65,7 +65,7 @@ func (c *Conn) HandleConn()(error){
 			}
 			return err
 		}
-		response,err := c.parseRequest(buff.Bytes())
+		response,err := c.parseRequest(data)
 		if err != nil {
 			//@todo: Improve on the error handling logic
 			log.Printf("error while parsing response %v\n", err)
