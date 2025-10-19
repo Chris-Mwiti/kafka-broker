@@ -45,7 +45,7 @@ func (c *Conn) parseRequest(data []byte)(ParseRequest,error){
 	//@todo: How do i check that the first 4 bytes of the data are present?
 	log.Printf("the following is the data is: %v\n", data)
 
-	if len(data) < 8 {
+	if len(data) < 12 {
 		log.Printf("error. the received data has a short message size: %v", len(data))
 		return ParseRequest{},ERR_MESSAGE_SIZE
 	} 
