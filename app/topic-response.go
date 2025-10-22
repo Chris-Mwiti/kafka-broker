@@ -83,7 +83,7 @@ type topicResponseHeader struct {
 }
 
 type topicResponseBody struct {
-	topicArrLen uint16
+	topicArrLen uint8
 	errorCode uint16
 	topics []ResponseTopic
 	isInternal uint8
@@ -92,7 +92,7 @@ type topicResponseBody struct {
 	tagBuf byte
 }
 
-func NewTopicResponseBody(topicArrLen uint16, topics []Topic) (topicResponseBody){
+func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody){
 	parsedTopics := make([]ResponseTopic, topicArrLen)
 	for i := 0; i < int(topicArrLen); i++ {
 		topic := topics[i]
