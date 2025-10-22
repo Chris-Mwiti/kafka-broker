@@ -32,7 +32,7 @@ func (pr *ParseRequest) ErrorCode()(uint16) {
 	return errCode
 }
 
-func (c *Conn) parseRequest(data []byte)(ParseRequest,error){
+func (c *Conn) handleApiRequest(data []byte)([]byte,error){
 	//check that the message size is a 32 bits(signed) 
 	
 	//payload structure: []byte{message_size+header+body}
@@ -47,7 +47,7 @@ func (c *Conn) parseRequest(data []byte)(ParseRequest,error){
 
 	if len(data) < 12 {
 		log.Printf("error. the received data has a short message size: %v", len(data))
-		return ParseRequest{},ERR_MESSAGE_SIZE
+		return nil,ERR_MESSAGE_SIZE
 	} 
 
 
@@ -70,8 +70,34 @@ func (c *Conn) parseRequest(data []byte)(ParseRequest,error){
 		RequestCorrelationId: correlationId,
 	}
 
+	res := NewApiVersionResponse(&response)
 
-	return response, nil
+	buff,err := res.Encode()
+	if err != nil {
+		log.Printf("error while encoding response: %v\n", err)
+	}
+
+	return buff, nil
 }
 
+func (conn *Conn) handleTopicRequest(data []byte)([]byte, error){
+	topicReq, err := NewParsedTopicReq(data)
+	if err != nil {
+		log.Printf("error while parsing topic req: %v\n", err)
+		return nil, err
+	}
 
+	topicRes, err := NewTopicResponse(*topicReq)
+	if err != nil {
+		log.Printf("error while creating topic response: %v\n", err)
+		return nil,err
+	}
+
+	res, err := topicRes.Encode()
+	if err != nil {
+		log.Printf("error while encoding topic res: %v\n", err)
+		return nil, err
+	}
+
+	return res, nil
+}

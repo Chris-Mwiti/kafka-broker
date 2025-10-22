@@ -34,7 +34,7 @@ func (s *Server) Listen() error {
 			defer conn.Close()
 
 			clientHandler := &Conn{conn: conn} 
-			if err := clientHandler.HandleConn(); err != nil {
+			if err := clientHandler.HandleTopicConn(); err != nil {
 				log.Printf("Client handler error: %v", err)
 			}
 		}(clientConn)
