@@ -73,6 +73,9 @@ func (tr *TopicResponse) Encode() ([]byte, error) {
 		return nil, errors.New("error while merging buf")
 	}
 
+	
+	log.Printf("encoded repsone: %x\n", finalBuff.Bytes())
+
 	return finalBuff.Bytes(), nil
 }
 
@@ -97,7 +100,7 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody)
 	for i := 0; i < int(topicArrLen); i++ {
 		topic := topics[i]
 		parsedTopics[i] = ResponseTopic{
-			len: uint8(topicArrLen),
+			len: topic.len,
 			contents: topic.name,
 			id: [16]byte{},
 		} 	
