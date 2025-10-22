@@ -50,7 +50,7 @@ func (tr *TopicResponse) Encode() ([]byte, error) {
 	}
 
 	//encode the cursor and tag buff
-	if err := binary.Write(buff, binary.BigEndian, tr.cursor); err != nil {
+	if err := buff.WriteByte(byte(tr.cursor)); err != nil {
 		log.Printf("error while encoding topic response cursor: %v\n", err)
 		return nil, errors.New("error while encoding response cursor")
 	}
