@@ -75,7 +75,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 	}
 
 	var clientTagBuf byte
-	if err := binary.Read(reader, binary.BigEndian, clientTagBuf); err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &clientTagBuf); err != nil {
 		log.Printf("error while reading client tag buf: %v\n", err)
 		return nil, errors.New("error while parsing client tag buf")
 	}
@@ -120,7 +120,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		return nil, errors.New("error while parsing cursor")
 	}
 
-	var tagBuf byte
+	var tagBuf uint8
 	if err := binary.Read(reader, binary.BigEndian, &tagBuf); err != nil {
 		log.Printf("error while reading tag buf: %v\n", err)
 		return nil, errors.New("error while parising tag buf")
