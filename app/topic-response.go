@@ -179,7 +179,7 @@ func (tRB *topicResponseBody) Encode()([]byte, error){
 }
 
 type ResponseTopic struct {
-	len uint16
+	len uint8
 	contents string
 	id [16]byte
 }

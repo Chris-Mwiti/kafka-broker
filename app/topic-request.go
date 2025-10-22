@@ -29,7 +29,7 @@ type Client struct {
 }
 
 type Topic struct {
-	len uint16 
+	len uint8 
 	name []byte
 	tagBuf byte
 }
@@ -96,8 +96,8 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 	log.Printf("topic arr len: %d\n", topicsArrLen)
 	
 	topics := make([]Topic, int(topicsArrLen))
-	for i := 0; i < int(topicsArrLen); i++ {
-		var topicLen uint16
+	for i := 1; i < int(topicsArrLen); i++ {
+		var topicLen uint8
 		if err := binary.Read(reader, binary.BigEndian, &topicLen); err != nil {
 			log.Printf("error while reaeding topic len: %v\n", err)
 			return nil, errors.New("error while parsing topic name len")
