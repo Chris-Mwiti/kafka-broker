@@ -96,6 +96,7 @@ type topicResponseBody struct {
 }
 
 func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody){
+	log.Printf("topics: %v\n", topics)
 	parsedTopics := make([]ResponseTopic, topicArrLen)
 	for i := 0; i < int(topicArrLen); i++ {
 		topic := topics[i]
