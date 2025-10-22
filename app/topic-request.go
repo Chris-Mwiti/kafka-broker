@@ -92,6 +92,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		return nil, errors.New("error while parsing topics arr len")
 	}
 
+	log.Printf("topic arr len: %d\n", int(topicsArrLen))
 	
 	topics := make([]Topic, int(topicsArrLen))
 	for i := 0; i < int(topicsArrLen); i++ {
