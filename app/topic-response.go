@@ -50,7 +50,7 @@ func (tr *TopicResponse) Encode() ([]byte, error) {
 	}
 
 	//encode the cursor and tag buff
-	if err := buff.WriteByte(byte(tr.cursor)); err != nil {
+	if err := binary.Write(buff, binary.BigEndian, tr.cursor); err != nil {
 		log.Printf("error while encoding topic response cursor: %v\n", err)
 		return nil, errors.New("error while encoding response cursor")
 	}
@@ -96,10 +96,11 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody)
 	parsedTopics := make([]ResponseTopic, topicArrLen)
 	for i := 0; i < int(topicArrLen); i++ {
 		topic := topics[i]
-		parsedTopics = append(parsedTopics, ResponseTopic{
-			len: topic.len,	
+		parsedTopics[i] = ResponseTopic{
+			len: uint8(topicArrLen),
 			contents: topic.name,
-		})
+			id: [16]byte{},
+		} 	
 	}
 
 	errCode := []byte{0,3}
