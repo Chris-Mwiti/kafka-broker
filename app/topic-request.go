@@ -60,6 +60,8 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		log.Printf("errors while parsing correlation id: %v\n",err)
 		return nil, errors.New("error while parsing correlation id")
 	}
+	
+	log.Printf("correlation id: %v\n", correlationId)
 
 	var clientIdLen uint16
 	if err := binary.Read(reader, binary.BigEndian, &clientIdLen); err != nil {
