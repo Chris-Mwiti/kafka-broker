@@ -77,6 +77,8 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		return nil, errors.New("invalid client id")
 	}
 
+	log.Printf("client id: %v\n", string(clientId))
+
 	var clientTagBuf byte
 	if err := binary.Read(reader, binary.BigEndian, &clientTagBuf); err != nil {
 		log.Printf("error while reading client tag buf: %v\n", err)
