@@ -85,6 +85,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		return nil, errors.New("error while parsing client tag buf")
 	}
 
+	log.Printf("client tag buf: %d", clientTagBuf)
 
 	var topicsArrLen uint16
 	if err := binary.Read(reader, binary.BigEndian, &topicsArrLen); err != nil {
@@ -92,7 +93,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		return nil, errors.New("error while parsing topics arr len")
 	}
 
-	log.Printf("topic arr len: %d\n", int(topicsArrLen))
+	log.Printf("topic arr len: %d\n", topicsArrLen)
 	
 	topics := make([]Topic, int(topicsArrLen))
 	for i := 0; i < int(topicsArrLen); i++ {
