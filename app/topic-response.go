@@ -12,7 +12,7 @@ type TopicResponse struct {
 	header topicResponseHeader
 	body topicResponseBody
 	cursor int8
-	tagBuf uint8
+	tagBuf byte
 }
 
 func NewTopicResponse(req ParsedTopicApiRequest)(TopicResponse, error){
@@ -78,7 +78,7 @@ func (tr *TopicResponse) Encode() ([]byte, error) {
 
 type topicResponseHeader struct {
 	correlationId uint32
-	tagBuf uint8
+	tagBuf byte
 	throttleTime uint32
 }
 
@@ -89,7 +89,7 @@ type topicResponseBody struct {
 	isInternal uint8
 	partitionsArr uint16
 	topicAuthOps uint32
-	tagBuf uint8
+	tagBuf byte
 }
 
 func NewTopicResponseBody(topicArrLen uint16, topics []Topic) (topicResponseBody){

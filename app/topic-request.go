@@ -18,19 +18,19 @@ type ParsedTopicApiRequest struct {
 	topics []Topic
 	responsePartitionLimit uint32
 	cursor uint8
-	tagBuf uint8
+	tagBuf byte
 }
 
 type Client struct {
 	clientIdLen uint16
 	clientId string
-	tagBuf uint8
+	tagBuf byte
 }
 
 type Topic struct {
 	len uint16 
 	name []byte
-	tagBuf uint8
+	tagBuf byte
 }
 
 func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
@@ -74,7 +74,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		return nil, errors.New("invalid client id")
 	}
 
-	var clientTagBuf uint8
+	var clientTagBuf byte
 	if err := binary.Read(reader, binary.BigEndian, clientTagBuf); err != nil {
 		log.Printf("error while reading client tag buf: %v\n", err)
 		return nil, errors.New("error while parsing client tag buf")
@@ -99,7 +99,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 			log.Printf("error while reading topic name: %v\n", err)
 			return nil, errors.New("error while parsing topic name")
 		}
-		var tagBuf uint8
+		var tagBuf byte
 		if err := binary.Read(reader, binary.BigEndian, &tagBuf); err != nil {
 			log.Printf("error while reading topic tag buf: %v\n",err)
 			return nil, errors.New("error while parsing topic tag buf")
@@ -120,7 +120,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		return nil, errors.New("error while parsing cursor")
 	}
 
-	var tagBuf uint8
+	var tagBuf byte
 	if err := binary.Read(reader, binary.BigEndian, &tagBuf); err != nil {
 		log.Printf("error while reading tag buf: %v\n", err)
 		return nil, errors.New("error while parising tag buf")
