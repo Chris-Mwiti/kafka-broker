@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"log"
 	"unicode/utf8"
 )
@@ -87,12 +88,18 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		return nil, errors.New("error while parsing topics arr len")
 	}
 
+	
 	topics := make([]Topic, int(topicsArrLen))
 	for i := 0; i < int(topicsArrLen); i++ {
 		var topicLen uint16
 		if err := binary.Read(reader, binary.BigEndian, &topicLen); err != nil {
 			log.Printf("error while reaeding topic len: %v\n", err)
 			return nil, errors.New("error while parsing topic name len")
+		}
+
+		if reader.Len() < int(topicsArrLen) + 1 {
+			log.Printf("not enough bytes for topic: %d\n", i)
+			return nil, fmt.Errorf("error not enough bytes for topic: %d\n", i)
 		}
 		topic := make([]byte, topicLen)
 		if _, err := reader.Read(topic); err != nil {
@@ -114,7 +121,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		return nil, errors.New("error while parsing response partion limit")
 	}
 
-	var cursor uint8
+	var cursor byte
 	if err := binary.Read(reader, binary.BigEndian, &cursor); err != nil {
 		log.Printf("error while reading curson: %v\n", err)
 		return nil, errors.New("error while parsing cursor")
