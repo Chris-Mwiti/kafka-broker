@@ -15,7 +15,7 @@ type ParsedTopicApiRequest struct {
 	apiVersion uint16
 	correlationId uint32
 	client Client
-	topicArrLen uint16
+	topicArrLen uint8
 	topics []Topic
 	responsePartitionLimit uint32
 	cursor uint8
@@ -87,7 +87,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 
 	log.Printf("client tag buf: %d", clientTagBuf)
 
-	var topicsArrLen uint16
+	var topicsArrLen uint8
 	if err := binary.Read(reader, binary.BigEndian, &topicsArrLen); err != nil {
 		log.Printf("error while reading topic array len: %v\n", err)
 		return nil, errors.New("error while parsing topics arr len")
