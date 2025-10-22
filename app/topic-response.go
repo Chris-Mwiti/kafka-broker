@@ -98,7 +98,7 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody)
 		topic := topics[i]
 		parsedTopics = append(parsedTopics, ResponseTopic{
 			len: topic.len,	
-			contents: string(topic.name),
+			contents: topic.name,
 		})
 	}
 
@@ -180,7 +180,7 @@ func (tRB *topicResponseBody) Encode()([]byte, error){
 
 type ResponseTopic struct {
 	len uint8
-	contents string
+	contents []byte
 	id [16]byte
 }
 
