@@ -104,6 +104,7 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody)
 			contents: topic.name,
 			id: [16]byte{},
 		} 	
+		log.Printf("topic name: %s\n", string(topic.name))
 	}
 
 	errCode := []byte{0,3}
