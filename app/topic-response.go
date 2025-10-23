@@ -97,9 +97,11 @@ type topicResponseBody struct {
 
 func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody){
 	log.Printf("topics: %v\n", topics)
-	parsedTopics := make([]ResponseTopic, topicArrLen)
-	for i := 1; i < int(topicArrLen); i++ {
+	//here am probably gonna get an error...but it generally does is 
+	parsedTopics := make([]ResponseTopic, (topicArrLen))
+	for i := 0; i < int(topicArrLen - 1); i++ {
 		topic := topics[i]
+		//this is propably wrong to do since we may get an out of bound error while trying to access the index
 		parsedTopics[i] = ResponseTopic{
 			len: topic.len,
 			contents: topic.name,
@@ -142,7 +144,6 @@ func (tRB *topicResponseBody) Encode()([]byte, error){
 		return nil, errors.New("error while encoding error code")
 	}
 
-	log.Printf("topic len: %v\n", len(tRB.topics))
 
 	for _, topic := range tRB.topics{
 		topicBytes,err := topic.Encode()

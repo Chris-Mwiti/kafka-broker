@@ -96,7 +96,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 	log.Printf("topic arr len: %d\n", topicsArrLen)
 	
 	topics := make([]Topic, int(topicsArrLen))
-	for i := 1; i < int(topicsArrLen); i++ {
+	for i := 0; i < int(topicsArrLen - 1); i++ {
 		var topicLen uint8
 		if err := binary.Read(reader, binary.BigEndian, &topicLen); err != nil {
 			log.Printf("error while reaeding topic len: %v\n", err)
@@ -117,7 +117,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 			log.Printf("error while reading topic tag buf: %v\n",err)
 			return nil, errors.New("error while parsing topic tag buf")
 		}
-		topics = append(topics, Topic{len: topicLen,name: topic, tagBuf: tagBuf})
+		topics[i] = Topic{len: topicLen, name: topic, tagBuf: tagBuf}
 	}
 
 
