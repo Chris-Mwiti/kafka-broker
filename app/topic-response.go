@@ -90,7 +90,7 @@ type topicResponseBody struct {
 	topics []ResponseTopic
 	isInternal uint8
 	partitionsArr uint16
-	topicAuthOps uint32
+	topicAuthOps int32
 	tagBuf byte
 }
 
@@ -124,7 +124,7 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody)
 		topicArrLen: topicArrLen,
 		isInternal: isInternal,
 		partitionsArr: partitionsArr,
-		topicAuthOps: uint32(topicAuthOps),
+		topicAuthOps: int32(topicAuthOps),
 		tagBuf: tagBuf,
 		errorCode: parsedErrCode,
 		topics: parsedTopics,
