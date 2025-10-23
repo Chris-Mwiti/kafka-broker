@@ -116,7 +116,7 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody)
 	isInternal := uint8(0)
 
 	partitionsArr :=  binary.BigEndian.Uint16([]byte{0,1})
-	topicAuthOps := 0x00000df8
+	topicAuthOps := 0
 
 	tagBuf := uint8(0)
 
