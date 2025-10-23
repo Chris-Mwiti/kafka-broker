@@ -142,6 +142,7 @@ func (tRB *topicResponseBody) Encode()([]byte, error){
 		return nil, errors.New("error while encoding error code")
 	}
 
+	log.Printf("topic len: %v\n", len(tRB.topics))
 
 	for _, topic := range tRB.topics{
 		topicBytes,err := topic.Encode()
