@@ -61,6 +61,7 @@ func (c *Conn) HandleTopicConn()(error){
 			return err
 		}
 		response,err := c.handleTopicRequest(buff.Bytes())
+		log.Printf("handl topic request: %x\n", response)
 		if err != nil {
 			//@todo: Improve on the error handling logic
 			log.Printf("error while parsing response %v\n", err)
