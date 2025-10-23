@@ -11,7 +11,7 @@ type TopicResponse struct {
 	msgSize uint32
 	header topicResponseHeader
 	body topicResponseBody
-	cursor int8
+	cursor uint8
 	tagBuf byte
 }
 
@@ -19,14 +19,13 @@ func NewTopicResponse(req ParsedTopicApiRequest)(TopicResponse, error){
 	header := NewTopicResponseHeader(req.correlationId)
 	body := NewTopicResponseBody(req.topicArrLen, req.topics)
 
-	cursor := int8(-1)
 	tagBuf := uint8(0)
 
 	return TopicResponse{
 		msgSize: uint32(0),
 		header: header,
 		body: body,
-		cursor: cursor,
+		cursor: 0xff,
 		tagBuf: tagBuf,
 	}, nil
 }
