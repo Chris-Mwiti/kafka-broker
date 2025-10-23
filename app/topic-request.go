@@ -103,6 +103,8 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 			return nil, errors.New("error while parsing topic name len")
 		}
 
+		log.Printf("topic len: %d for topic: %d", topicLen, i)
+
 		if reader.Len() < int(topicsArrLen) + 1 {
 			log.Printf("not enough bytes for topic: %d\n", i)
 			return nil, fmt.Errorf("error not enough bytes for topic: %d\n", i)
