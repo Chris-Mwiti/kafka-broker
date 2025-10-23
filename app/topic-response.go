@@ -98,7 +98,7 @@ type topicResponseBody struct {
 func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody){
 	log.Printf("topics: %v\n", topics)
 	parsedTopics := make([]ResponseTopic, topicArrLen)
-	for i := 0; i < int(topicArrLen); i++ {
+	for i := 1; i < int(topicArrLen); i++ {
 		topic := topics[i]
 		parsedTopics[i] = ResponseTopic{
 			len: topic.len,
@@ -143,23 +143,17 @@ func (tRB *topicResponseBody) Encode()([]byte, error){
 	}
 
 
-	topicBuff := new(bytes.Buffer)
 	for _, topic := range tRB.topics{
 		topicBytes,err := topic.Encode()
 		if err != nil {
 			return nil, err
 		}
-		_, err = topicBuff.Write(topicBytes)
+		_, err = buff.Write(topicBytes)
 		if err != nil {
 			log.Printf("error while writing topic bytes: %v\n", err)
 			return nil, err
 		}
 	}
-
-	if _,err := buff.Write(topicBuff.Bytes()); err != nil {
-		log.Printf("error whiler merging main buf with topic buf: %v\n", err)
-		return nil, err
-	} 
 
 	if err := binary.Write(buff, binary.BigEndian, tRB.isInternal); err != nil {
 		log.Printf("error while writing is internal: %v\n", err)
