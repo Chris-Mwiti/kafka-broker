@@ -98,7 +98,7 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody)
 	log.Printf("topics: %v\n", topics)
 	//here am probably gonna get an error...but it generally does is 
 	parsedTopics := make([]ResponseTopic, (topicArrLen))
-	for i := 0; i < int(topicArrLen - 1); i++ {
+	for i := 0; i < int(topicArrLen); i++ {
 		topic := topics[i]
 		//this is propably wrong to do since we may get an out of bound error while trying to access the index
 		parsedTopics[i] = ResponseTopic{
@@ -120,6 +120,9 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody)
 
 	tagBuf := uint8(0)
 
+	//compact array => +1
+	topicArrLen += 1
+
 	return topicResponseBody{
 		topicArrLen: topicArrLen,
 		isInternal: isInternal,
@@ -138,13 +141,12 @@ func (tRB *topicResponseBody) Encode()([]byte, error){
 		return nil, errors.New("error while encoding topic arr len")
 	}
 
-	if err := binary.Write(buff, binary.BigEndian, tRB.errorCode); err != nil {
-		log.Printf("error while encoding error code: %v\n", err)
-		return nil, errors.New("error while encoding error code")
-	}
-
-
 	for _, topic := range tRB.topics{
+		//@todo: In the future move this code to topic struct type
+		if err := binary.Write(buff, binary.BigEndian, tRB.errorCode); err != nil {
+			log.Printf("error while encoding error code: %v\n", err)
+			return nil, errors.New("error while encoding error code")
+		}
 		topicBytes,err := topic.Encode()
 		if err != nil {
 			return nil, err

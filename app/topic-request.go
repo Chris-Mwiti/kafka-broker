@@ -95,8 +95,10 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 
 	log.Printf("topic arr len: %d\n", topicsArrLen)
 	
+	topicsArrLen--
+
 	topics := make([]Topic, int(topicsArrLen))
-	for i := 0; i < int(topicsArrLen - 1); i++ {
+	for i := 0; i < int(topicsArrLen); i++ {
 		var topicLen uint8
 		if err := binary.Read(reader, binary.BigEndian, &topicLen); err != nil {
 			log.Printf("error while reaeding topic len: %v\n", err)
@@ -109,17 +111,23 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 			log.Printf("not enough bytes for topic: %d\n", i)
 			return nil, fmt.Errorf("error not enough bytes for topic: %d\n", i)
 		}
+
+		//compact arrays come up with a +1 byte 
+		topicLen--
+		
+		//@todo: There might be edge cases error like when the compact array is empty
 		topic := make([]byte, topicLen)
 		if _, err := reader.Read(topic); err != nil {
 			log.Printf("error while reading topic name: %v\n", err)
 			return nil, errors.New("error while parsing topic name")
 		}
+
 		var tagBuf byte
 		if err := binary.Read(reader, binary.BigEndian, &tagBuf); err != nil {
 			log.Printf("error while reading topic tag buf: %v\n",err)
 			return nil, errors.New("error while parsing topic tag buf")
 		}
-		topics[i] = Topic{len: topicLen, name: topic, tagBuf: tagBuf}
+		topics[i] = Topic{len: topicLen + 1, name: topic, tagBuf: tagBuf}
 	}
 
 
