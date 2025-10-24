@@ -231,6 +231,7 @@ func (tRH *topicResponseHeader) Encode()([]byte, error){
 		return nil, errors.New("error while encoding throttle time")
 	}
 
+
 	return buff.Bytes(), nil
 
 }
