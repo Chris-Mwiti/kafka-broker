@@ -213,6 +213,7 @@ func NewTopicResponseHeader(correlationId uint32)(topicResponseHeader){
 		throttleTime: 0,
 	}
 }
+//encodes the topic response header
 func (tRH *topicResponseHeader) Encode()([]byte, error){
 	buff := new(bytes.Buffer)
 
