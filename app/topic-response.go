@@ -89,7 +89,7 @@ type topicResponseBody struct {
 	errorCode uint16
 	topics []ResponseTopic
 	isInternal uint8
-	partitionsArr uint16
+	partitionsArr uint8
 	topicAuthOps int32
 	tagBuf byte
 }
@@ -115,7 +115,7 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody)
 
 	isInternal := uint8(0)
 
-	partitionsArr :=  binary.BigEndian.Uint16([]byte{0,1})
+	partitionsArr :=  uint8(1)
 	topicAuthOps := 0
 
 	tagBuf := uint8(0)
