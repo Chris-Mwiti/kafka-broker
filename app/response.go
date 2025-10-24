@@ -66,6 +66,7 @@ func (b *versionResponseBody) Encode() ([]byte, error){
 	}
 
 	//sets the length of array content length
+	//
 	if err := buff.WriteByte(byte(len(b.apiKeys) + 1)); err != nil {
 		log.Printf("error while encoding response body length: %v\n", err)
 		return nil, err

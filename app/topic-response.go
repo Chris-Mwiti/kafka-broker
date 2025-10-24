@@ -97,16 +97,19 @@ type topicResponseBody struct {
 func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (topicResponseBody){
 	log.Printf("topics: %v\n", topics)
 	//here am probably gonna get an error...but it generally does is 
+
 	parsedTopics := make([]ResponseTopic, (topicArrLen))
-	for i := 0; i < int(topicArrLen); i++ {
-		topic := topics[i]
-		//this is propably wrong to do since we may get an out of bound error while trying to access the index
-		parsedTopics[i] = ResponseTopic{
-			len: topic.len,
-			contents: topic.name,
-			id: [16]byte{},
-		} 	
-		log.Printf("topic name: %s\n", string(topic.name))
+	if topicArrLen > 0 {
+		for i := 0; i < int(topicArrLen); i++ {
+			topic := topics[i]
+			//this is propably wrong to do since we may get an out of bound error while trying to access the index
+			parsedTopics[i] = ResponseTopic{
+				len: topic.len,
+				contents: topic.name,
+				id: [16]byte{},
+			} 	
+			log.Printf("topic name: %s\n", string(topic.name))
+		}
 	}
 
 	errCode := []byte{0,3}
