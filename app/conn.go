@@ -54,12 +54,8 @@ func (c *Conn) HandleConn()(error){
 			return err
 		}
 
-		copyBuf := new(bytes.Buffer)
-
-		_, err = io.Copy(copyBuf, buff)
-
 		//check the api key to send request to appropriate handler
-		isVersion18, err := checkApiVersion18(copyBuf.Bytes())	
+		isVersion18, err := checkApiVersion18(data)	
 		if err != nil {
 			return err
 		}
