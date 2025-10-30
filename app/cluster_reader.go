@@ -1,6 +1,19 @@
 package main
 
-type BatchRecord struct {
+import (
+	"bytes"
+	"errors"
+	"log"
+	"os"
+)
+
+const (
+	BASE_CLUSTER_URL = "/tmp/kraft-combined-logs/"
+	CLUSTER_METADATA_URL = "__cluster_metadata-0/"
+	FILE = "00000000000000000000.log"
+)
+
+type RecordBatch struct {
 	BaseOffset int64 //offset batch of the record
 	BatchLength 	uint32 //lenght of the total items in the batch
 
@@ -27,7 +40,7 @@ type Record struct {
 	KeyLen int8 //used to indicate the len of the key 
 	Key []byte
 	ValLen int8
-	Val []RecordVal
+	Val []byte
 	HeadersArrCount uint16
 }
 
@@ -53,18 +66,17 @@ type TopicLevelRec struct {
 	Header ValHeader
 	NameLen uint16
 	Name []byte
-	Id [16]byte
+	Id int64
 	Tag uint8
 }
 
 type PartitionRec struct {
 	Header ValHeader
 	Id int32
-	TopicId [16]byte
+	TopicId int64
 	ReplicArrLen uint8
 	ReplicArr int32
 	SyncReplicArrLen uint8
-	
 	SyncReplicaArr int32
 	RemoveReplicaLenArr uint8
 	AddReplicaArr uint8
@@ -72,7 +84,27 @@ type PartitionRec struct {
 	LeaderEpoch int32
 	PartitionEpoch int32
 	DirectoriesLen int8
-	DirectoryArr []byte
+	DirectoryArr []int64
 	Tag uint8
 } 
 
+func readClusterMetaData(path string)(*bytes.Buffer, error){
+	if _,err := os.Stat(path); os.IsNotExist(err){
+		log.Printf("error while checking file status: %v\n", err)
+		return nil, errors.New("file does not exit")	
+	} 
+	fileBytes, err := os.ReadFile(path)
+	if err != nil {
+		log.Printf("error while reading file contents: %v\n", err)
+		return nil, errors.New("error while reading file contents")
+	}
+
+	//create a new buff that will be used to manipulate the retrieved data
+	buff := bytes.NewBuffer(fileBytes)
+
+	return buff, nil
+}
+
+func NewBatchReader(data []byte)(*RecordBatch, error){
+	
+}
