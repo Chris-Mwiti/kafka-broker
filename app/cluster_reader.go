@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"log"
 	"os"
@@ -17,7 +18,7 @@ type RecordBatch struct {
 	BaseOffset int64 //offset batch of the record
 	BatchLength 	uint32 //lenght of the total items in the batch
 
-	PartitionLeaderEpoch uint32 //used to identify the epoch of the leader in this partition
+	PartitionLeaderEpoch int32 //used to identify the epoch of the leader in this partition
 	MagicByte uint8 //used to identify the version of the record bacth
 	CRC int32
 	Attributes int16 //used to indicate the attributes of the record batch //bitmask format
@@ -66,14 +67,14 @@ type TopicLevelRec struct {
 	Header ValHeader
 	NameLen uint16
 	Name []byte
-	Id int64
+	Id [16]byte
 	Tag uint8
 }
 
 type PartitionRec struct {
 	Header ValHeader
 	Id int32
-	TopicId int64
+	TopicId [16]byte
 	ReplicArrLen uint8
 	ReplicArr int32
 	SyncReplicArrLen uint8
@@ -84,7 +85,7 @@ type PartitionRec struct {
 	LeaderEpoch int32
 	PartitionEpoch int32
 	DirectoriesLen int8
-	DirectoryArr []int64
+	DirectoryArr [16]byte
 	Tag uint8
 } 
 
@@ -105,6 +106,134 @@ func readClusterMetaData(path string)(*bytes.Buffer, error){
 	return buff, nil
 }
 
-func NewBatchReader(data []byte)(*RecordBatch, error){
-	
+
+func processClusterData(buff *bytes.Buffer)([]*RecordBatch, error){
+	//first we need to extract the actual length of the bytes
+	//from this data we can then use to generate batch records
+
+	batches := make([]*RecordBatch, 0)
+
+	for buff.Len() > 0 {
+		batch := RecordBatch{}
+		//step 1. Extract the base offset and batch lenght that will be used to generate the record batch arr
+		var baseOffset int64
+		if err := binary.Read(buff, binary.BigEndian, &baseOffset); err != nil {
+			log.Printf("error while reading batch offset: %v\n", err)
+			return nil, errors.New("error while extracting batch offset")
+		}
+		batch.BaseOffset = baseOffset
+
+		var batchLen int32
+		if err := binary.Read(buff, binary.BigEndian, &batchLen); err != nil {
+			log.Printf("error while reading batch len: %v\n", err)
+			return nil, errors.New("error while extracting batch len")
+		}
+		batch.BatchLength = uint32(batchLen)
+
+		//create a counter that will track the batch bytes to prevent overflow
+		actualBatchLen := batchLen
+		//if the buff len is less then read the entire buff as a batch
+		if buff.Len() < int(actualBatchLen){
+			actualBatchLen = int32(buff.Len())
+			log.Printf("actual buff len: %v\n", actualBatchLen)
+		}
+
+		batchBytes := make([]byte, actualBatchLen)
+		if _, err := buff.Read(batchBytes); err != nil {
+			log.Printf("error while reading batch bytes: %v\n", err)
+			return nil, errors.New("error while extracting batch bytes")
+		}
+	}
+}
+
+
+func NewBatchReader(buff *bytes.Buffer)(*RecordBatch, error){
+	recordBatch := &RecordBatch{}
+
+	var partitionLeaderEpoch int32
+	if err := binary.Read(buff, binary.BigEndian, &partitionLeaderEpoch); err != nil {
+		log.Printf("error while reading partitionLeaderEpoch: %v\n", err)
+		return nil, errors.New("error while reading partition leader epoch")
+	}
+	recordBatch.PartitionLeaderEpoch = partitionLeaderEpoch
+
+	magicByte, err:= buff.ReadByte()
+	if err != nil {
+		log.Printf("error while reading magic byte: %v\n", err)
+		return nil, errors.New("error while reading magic byte")
+	}
+	recordBatch.MagicByte = magicByte
+
+	var crc int32
+	if err := binary.Read(buff, binary.BigEndian, &crc); err != nil {
+		log.Printf("error while reading crc: %v\n", err)
+		return nil, errors.New("error while reading crc")
+	}
+	recordBatch.CRC = crc
+
+	var attr int16
+	if err := binary.Read(buff, binary.BigEndian, &attr); err != nil {
+		log.Printf("error while reading attr: %v\n", err)
+		return nil, errors.New("error while reading attr")
+	}
+	recordBatch.Attributes = attr
+
+	var lastOffsetDelta int32
+	if err := binary.Read(buff, binary.BigEndian, &lastOffsetDelta); err != nil {
+		log.Printf("error while reading last offset delta: %v\n", err)
+		return nil, errors.New("error while reading last offset delta")
+	}
+	recordBatch.LastOffsetDelta = lastOffsetDelta
+
+	var baseOffsetTimeStamp int64
+	if err := binary.Read(buff, binary.BigEndian, &baseOffsetTimeStamp); err != nil {
+		log.Printf("error while reading base offset timestamp: %v\n", err)
+		return nil, errors.New("error while reading base offset timestamp")
+	}
+	recordBatch.BaseTimeStamp = baseOffsetTimeStamp
+
+	var maxTimeStamp int64
+	if err := binary.Read(buff, binary.BigEndian, &maxTimeStamp); err != nil {
+		log.Printf("error while reading max offset timestamp: %v\n", err)
+		return nil, errors.New("error while extracting offset timestamp")
+	}
+	recordBatch.MaxTimeStamp = maxTimeStamp
+
+	var producerId int64
+	if err := binary.Read(buff, binary.BigEndian, &producerId); err != nil {
+		log.Printf("error while reading max offset producerId: %v\n", err)
+		return nil, errors.New("error while extracting offset producerId")
+	}
+	recordBatch.ProducerId = producerId
+
+	var producerEpoch int16
+	if err := binary.Read(buff, binary.BigEndian, &producerEpoch); err != nil {
+		log.Printf("error while reading max offset producerId: %v\n", err)
+		return nil, errors.New("error while extracting offset producerId")
+	}
+	recordBatch.ProducerEpoch = producerEpoch
+
+	var baseSequence int32
+	if err := binary.Read(buff, binary.BigEndian, &baseSequence); err != nil {
+		log.Printf("error while reading base sequence: %v\n", err)
+		return nil, errors.New("error while extracting base sequence")
+	}
+	recordBatch.BaseSequence = baseSequence
+
+	var recordLen int32
+	if err := binary.Read(buff, binary.BigEndian, &recordLen); err != nil {
+		log.Printf("error while reading record len: %v\n", err)
+		return nil, errors.New("error while extracting record len")
+	}
+	recordBatch.RecordsLen = uint32(recordLen)
+
+	records := make([]*Record, recordLen)
+
+	for i := 0; i < int(recordLen); i++ {
+		record, err := NewRecordReader(buff)
+	}
+}
+
+func NewRecordReader(buff *bytes.Buffer)(*Record, error){
+	record := Record{}
 }
