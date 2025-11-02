@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"io"
 	"log"
 	"os"
 
@@ -44,7 +45,7 @@ type Record struct {
 	Key []byte
 	ValLen int8
 	Val []byte
-	HeadersArrCount uint16
+	HeadersArrCount uint8
 }
 
 type RecordVal struct {
@@ -74,7 +75,7 @@ type TopicLevelRec struct {
 	Id [16]byte
 	Tag uint8
 }
-var topicLevelMap = make(map[uuid.UUID][]TopicLevelRec)
+var topicLevelMap = make(map[uuid.UUID]TopicLevelRec)
 
 type PartitionRec struct {
 	Header ValHeader
@@ -325,12 +326,18 @@ func NewRecordReader(buff *bytes.Buffer)(*Record, error){
 		log.Printf("error while creating val header: %v\n", err)
 		return nil, errors.New("error while creating val header")
 	}
-	err = recHeader.ProcessType(valBuff)
+	err = recHeader.processType(valBuff)
 	if err != nil {
 		log.Printf("error while processing record type: %v\n", err)
 		return nil, errors.New("error while processing record type")
 	}
 
+	headersArrCount, err := buff.ReadByte()
+	if err != nil {
+		log.Printf("error while fetching headers arr count: %v\n", err)
+		return nil, err
+	}
+	record.HeadersArrCount = uint8(headersArrCount)
 	return &record, nil
 }
 
@@ -360,9 +367,82 @@ func NewValHeader(valBuff *bytes.Buffer)(*ValHeader, error){
 	return &header, nil
 }
 
-func (valHeader *ValHeader) ProcessType(valBuff *bytes.Buffer)(error){
-	
+func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
+
 	switch valHeader.RecordType {
-	
+	case 12:
+		feature := FeatureLevelRec{}
+		feature.Header = *valHeader
+
+		nameLen, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while reading name length: %v\n", err)
+			return errors.New("error while reading name length")
+		}
+		feature.NameLen = uint8(nameLen)	
+
+		name := make([]byte, nameLen)
+		if _, err := valBuff.Read(name); err != nil {
+			log.Printf("error while reading name content: %v\n", err)
+			return errors.New("error while reading name content")
+		}
+		feature.Name = name	
+
+		var featureLevel int16
+		if err := binary.Read(valBuff, binary.BigEndian, &featureLevel); err != nil {
+			log.Printf("error while reading feature level: %v\n", err)
+			return errors.New("error while reading feature level")
+		}
+		feature.Level = featureLevel	
+		tag, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while reading tag: %v\n", err)
+			return errors.New("error while extracting tag")
+		}
+		feature.Tag = tag
+		featureLevelMap[string(feature.Name)] = feature
+		break
+
+	case 2:
+		topic := TopicLevelRec{}
+		topic.Header = *valHeader
+
+		topicNameLen, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while reading topic name: %v\n", err)
+			return errors.New("error while reading topic name")
+		}
+		topic.NameLen = uint16(topicNameLen)	
+
+		topicContent := make([]byte, topicNameLen)
+		if _, err := valBuff.Read(topicContent); err != nil {
+			log.Printf("error while reading topic content: %v\n", err)
+			return err
+		}
+		topic.Name = topicContent	
+		lR := io.LimitReader(valBuff, 16)
+		var topicId []byte
+		if _, err := lR.Read(topicId); err != nil {
+			log.Printf("error while limit reading the topic uuid: %v\n", err)
+			return err
+		}
+
+		//parse the uuid and check whether it is a valid uuid
+		validId, err := uuid.ParseBytes(topicId)
+		if err != nil {
+			log.Printf("error while parsing topic id: %v\n", err)
+			return errors.New("error while parsing topic id")
+		}
+
+		tag, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while reading byte: %v\n", err)
+			return err
+		}
+		topic.Tag = tag	
+		topicLevelMap[validId] = topic	
+		break
 	}	
+	
+	return  nil
 }
