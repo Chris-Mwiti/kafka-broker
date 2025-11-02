@@ -34,11 +34,11 @@ type RecordBatch struct {
 }
 
 type Record struct {
-	Length int16 //used to indcate the lenght of the of the record...calc from the attributes till the end
+	Length int8 //used to indcate the lenght of the of the record...calc from the attributes till the end
   Attributes int8	
 	TimeStampDelta int16 //used to show the offset btn the batch timestamp and the record timestamp
 	OffsetDelta int16 //offset btn the batch delta record
-	KeyLen int8 //used to indicate the len of the key 
+	KeyLen int8 //used jto indicate the len of the key 
 	Key []byte
 	ValLen int8
 	Val []byte
@@ -143,6 +143,9 @@ func processClusterData(buff *bytes.Buffer)([]*RecordBatch, error){
 			log.Printf("error while reading batch bytes: %v\n", err)
 			return nil, errors.New("error while extracting batch bytes")
 		}
+
+		batchBuff := bytes.NewBuffer(batchBytes)
+		
 	}
 }
 
@@ -236,4 +239,36 @@ func NewBatchReader(buff *bytes.Buffer)(*RecordBatch, error){
 
 func NewRecordReader(buff *bytes.Buffer)(*Record, error){
 	record := Record{}
+	
+	contentLen, err := buff.ReadByte();
+	if err != nil {
+		log.Printf("error while reading record content len: %v\n", err)
+		return nil, errors.New("error while extracting content len")
+	}
+	record.Length = int16(contentLen)
+
+	header := ValHeader{}
+
+	frameVersion, err := buff.ReadByte()
+	if err != nil {
+		log.Printf("error while recording new feature level: %v\n", err)
+		return nil, errors.New("error while extracting feature level")
+	}
+	header.FrameVersion = int8(frameVersion)
+
+	recType, err := buff.ReadByte()
+	if err != nil {
+		log.Printf("error while readig record type: %v\n", err)
+		return nil, errors.New("error while extracting record type")
+	}
+	header.RecordType = int8(recType)
+
+	version, err := buff.ReadByte()
+	if err != nil {
+		log.Printf("error while reading version: %v\n", err)
+		return nil, errors.New("error while extracting record version")
+	}
+	header.Version = int8(version)
+
+
 }
