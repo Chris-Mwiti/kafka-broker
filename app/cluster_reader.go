@@ -96,7 +96,7 @@ type PartitionRec struct {
 } 
 var partitionsTopicMap = make(map[uuid.UUID][]PartitionRec)
 
-func readClusterMetaData(path string)(*bytes.Buffer, error){
+func ReadClusterMetaData(path string)(*bytes.Buffer, error){
 	if _,err := os.Stat(path); os.IsNotExist(err){
 		log.Printf("error while checking file status: %v\n", err)
 		return nil, errors.New("file does not exit")	
@@ -114,7 +114,7 @@ func readClusterMetaData(path string)(*bytes.Buffer, error){
 }
 
 
-func processClusterData(buff *bytes.Buffer)([]RecordBatch, error){
+func ProcessClusterData(buff *bytes.Buffer)([]RecordBatch, error){
 	//first we need to extract the actual length of the bytes
 	//from this data we can then use to generate batch records
 	batches := make([]RecordBatch, 0)
