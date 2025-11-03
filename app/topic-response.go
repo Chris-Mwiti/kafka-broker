@@ -84,6 +84,20 @@ type topicResponseHeader struct {
 	throttleTime uint32
 }
 
+type topicPartition struct {
+	errorCode int16
+	partitionIndex int32
+	leaderId int32
+	leaderEpoch int32
+	replicArrlen uint32
+	replicArr []int32
+	isrArrLen uint32
+	isrArr []int32
+	lastKnowELR []int32
+	offlineRepl []int32
+	tag int8
+}
+
 type topicResponseBody struct {
 	topicArrLen uint8
 	errorCode uint16
