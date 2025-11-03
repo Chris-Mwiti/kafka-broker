@@ -37,13 +37,13 @@ type RecordBatch struct {
 }
 
 type Record struct {
-	Length int8 //used to indcate the lenght of the of the record...calc from the attributes till the end
+	Length int64 //used to indcate the lenght of the of the record...calc from the attributes till the end
   Attributes int8	
-	TimeStampDelta int8 //used to show the offset btn the batch timestamp and the record timestamp
-	OffsetDelta int8 //offset btn the batch delta record
-	KeyLen int8 //used jto indicate the len of the key 
+	TimeStampDelta int64 //used to show the offset btn the batch timestamp and the record timestamp
+	OffsetDelta int64 //offset btn the batch delta record
+	KeyLen int64 //used jto indicate the len of the key 
 	Key []byte
-	ValLen int8
+	ValLen int64
 	Val []byte
 	HeadersArrCount uint8
 }
@@ -61,40 +61,40 @@ type ValHeader struct {
 
 type FeatureLevelRec struct {
 	Header ValHeader
-	NameLen uint8 //compact array with a len = len - 1
+	NameLen uint32 //compact array with a len = len - 1
 	Name []byte
 	Level int16 //used to indicate the level of the feature
-	Tag uint8
+	Tag int64
 }
-var featureLevelMap = make(map[string]FeatureLevelRec)
+var FeatureLevelMap = make(map[string]FeatureLevelRec)
 
 type TopicLevelRec struct {
 	Header ValHeader
-	NameLen uint16
+	NameLen uint32
 	Name []byte
 	Id [16]byte
-	Tag uint8
+	Tag int64
 }
-var topicLevelMap = make(map[uuid.UUID]TopicLevelRec)
+var TopicLevelMap = make(map[uuid.UUID]TopicLevelRec)
 
 type PartitionRec struct {
 	Header ValHeader
 	Id int32
 	TopicId [16]byte
-	ReplicArrLen uint8
+	ReplicArrLen uint32
 	ReplicArr []int32
-	SyncReplicArrLen uint8
+	SyncReplicArrLen uint32
 	SyncReplicaArr []int32
-	RemoveReplicaLenArr uint8
-	AddReplicaArr uint8
+	RemoveReplicaLenArr uint32
+	AddReplicaArr uint32
 	Leader int32
 	LeaderEpoch int32
 	PartitionEpoch int32
-	DirectoriesLen uint8
+	DirectoriesLen uint32
 	DirectoryArr [][]byte
-	Tag uint8
+	Tag int64
 } 
-var partitionsTopicMap = make(map[uuid.UUID][]PartitionRec)
+var PartitionsTopicMap = make(map[uuid.UUID][]PartitionRec)
 
 func ReadClusterMetaData(path string)(*bytes.Buffer, error){
 	if _,err := os.Stat(path); os.IsNotExist(err){
@@ -263,12 +263,12 @@ func BatchReader(recordBatch *RecordBatch, buff *bytes.Buffer)(error){
 func NewRecordReader(buff *bytes.Buffer)(*Record, error){
 	record := Record{}
 	
-	contentLen, err := buff.ReadByte()
+	contentLen, err := ReadZigZag(buff) 
 	if err != nil {
 		log.Printf("error while reading record content len: %v\n", err)
 		return nil, errors.New("error while extracting content len")
 	}
-	record.Length = int8(contentLen)
+	record.Length = contentLen
 
 	attr, err := buff.ReadByte()
 	if err != nil {
@@ -277,26 +277,26 @@ func NewRecordReader(buff *bytes.Buffer)(*Record, error){
 	}
 	record.Attributes = int8(attr)
 
-	timeStampDelta, err := buff.ReadByte()
+	timeStampDelta, err := ReadZigZag(buff)
 	if err != nil {
 		log.Printf("error whle reading timestamp delta: %v\n", err)
 		return nil, errors.New("error while extracting timestamp delta")
 	}
-	record.TimeStampDelta = int8(timeStampDelta)
+	record.TimeStampDelta = timeStampDelta
 
-	offsetDelta, err := buff.ReadByte()
+	offsetDelta, err := ReadZigZag(buff)
 	if err != nil {
 		log.Printf("error while reading offset delta: %v\n", err)
 		return nil, errors.New("error while extracting offset delta")
 	}
-	record.OffsetDelta = int8(offsetDelta)
+	record.OffsetDelta = offsetDelta
 
-	keyLen, err := buff.ReadByte()
+	keyLen, err := ReadZigZag(buff)
 	if err != nil {
 		log.Printf("error while reading keyLen %v\n", err)
 		return nil, errors.New("error while extracting keyLen")
 	}
-	record.KeyLen = int8(keyLen)
+	record.KeyLen = keyLen
 
 	key := make([]byte, keyLen)
 	if _, err := buff.Read(key); err != nil {
@@ -304,12 +304,12 @@ func NewRecordReader(buff *bytes.Buffer)(*Record, error){
 		return nil, errors.New("error while reading key variable")
 	}
 
-	valLen, err := buff.ReadByte()
+	valLen, err := ReadZigZag(buff)
 	if err != nil {
 		log.Printf("error while reading valLen %v\n", err)
 		return nil, errors.New("error while extracting valLen")
 	}
-	record.ValLen = int8(valLen)
+	record.ValLen = valLen
 
 	//here we are gonna make a copy of the val cont for manipulation
 	//then after that we are gonna store the original content
@@ -375,12 +375,12 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		feature := FeatureLevelRec{}
 		feature.Header = *valHeader
 
-		nameLen, err := valBuff.ReadByte()
+		nameLen, err := ReadVariant(valBuff)
 		if err != nil {
 			log.Printf("error while reading name length: %v\n", err)
 			return errors.New("error while reading name length")
 		}
-		feature.NameLen = uint8(nameLen)	
+		feature.NameLen = nameLen	
 
 		name := make([]byte, nameLen)
 		if _, err := valBuff.Read(name); err != nil {
@@ -395,25 +395,26 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			return errors.New("error while reading feature level")
 		}
 		feature.Level = featureLevel	
-		tag, err := valBuff.ReadByte()
+
+		tag, err := ReadZigZag(valBuff)
 		if err != nil {
 			log.Printf("error while reading tag: %v\n", err)
 			return errors.New("error while extracting tag")
 		}
 		feature.Tag = tag
-		featureLevelMap[string(feature.Name)] = feature
+		FeatureLevelMap[string(feature.Name)] = feature
 		break
 
 	case 2:
 		topic := TopicLevelRec{}
 		topic.Header = *valHeader
 
-		topicNameLen, err := valBuff.ReadByte()
+		topicNameLen, err := ReadVariant(valBuff)
 		if err != nil {
 			log.Printf("error while reading topic name: %v\n", err)
 			return errors.New("error while reading topic name")
 		}
-		topic.NameLen = uint16(topicNameLen)	
+		topic.NameLen = topicNameLen	
 
 		topicContent := make([]byte, topicNameLen)
 		if _, err := valBuff.Read(topicContent); err != nil {
@@ -436,13 +437,13 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 		topic.Id = validId
 
-		tag, err := valBuff.ReadByte()
+		tag, err := ReadZigZag(valBuff)
 		if err != nil {
 			log.Printf("error while reading byte: %v\n", err)
 			return err
 		}
 		topic.Tag = tag	
-		topicLevelMap[validId] = topic	
+		TopicLevelMap[validId] = topic	
 		break
 	case 3:
 		partitionsRec := PartitionRec{} 
@@ -468,7 +469,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 		partitionsRec.TopicId = validId
 
-		replicArrlen, err := valBuff.ReadByte()
+		replicArrlen, err := ReadVariant(valBuff) 
 		if err != nil {
 			log.Printf("error while creating replic arr len %v\n", err)
 			return errors.New("error while extracting replic arr len")
@@ -481,11 +482,11 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 				log.Printf("error while extracting to replic buff: %v\n", err)
 				return errors.New("error while extracting replic buff")
 			}
-			replicArr = append(replicArr, replic)
+			replicArr[i] = replic
 		}
 		partitionsRec.ReplicArr = replicArr
 
-		inSyncArrLen, err := valBuff.ReadByte()
+		inSyncArrLen, err := ReadVariant(valBuff)
 		if err != nil {
 			log.Printf("error while creating in sync replic arr len %v\n", err)
 			return errors.New("error while extracting  in sync replic arr len")
@@ -498,23 +499,23 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 				log.Printf("error while extracting to in sync replic buff: %v\n", err)
 				return errors.New("error while extracting in sync replic buff")
 			}
-			inSyncArr = append(inSyncArr, sync)
+			inSyncArr[i] = sync
 		}
 	  partitionsRec.SyncReplicaArr = inSyncArr
 	
-		remReplicArr, err := valBuff.ReadByte()
+		remReplicArr, err := ReadVariant(valBuff)
 		if err != nil {
 			log.Printf("error while reading remReplicArr: %v\n", err)
 			return err
 		}
 	  partitionsRec.RemoveReplicaLenArr = remReplicArr - 1
 
-		addReplicArr, err := valBuff.ReadByte()
+		addReplicArr, err := ReadVariant(valBuff) 
 		if err != nil {
 			log.Printf("error while reading addReplicArr: %v\n", err)
 			return err
 		}
-		partitionsRec.RemoveReplicaLenArr = addReplicArr - 1
+		partitionsRec.AddReplicaArr = addReplicArr
 
 		var leaderId int32
 	  if err := binary.Read(valBuff, binary.BigEndian, &leaderId); err != nil {
@@ -537,7 +538,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 		partitionsRec.PartitionEpoch = partitionEpoch
 
-		directoriesArrLen, err := valBuff.ReadByte()
+		directoriesArrLen, err := ReadVariant(valBuff)
 		if err != nil {
 			log.Printf("error while creating in sync replic arr len %v\n", err)
 			return errors.New("error while extracting  in sync replic arr len")
@@ -553,18 +554,17 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 				log.Printf("error while reading dir content: %v\n", err)
 				return err
 			}
-			directoriesArr = append(directoriesArr, dir)
+			directoriesArr[i]= dir
 		}
 		partitionsRec.DirectoryArr = directoriesArr
 
-		tag, err := valBuff.ReadByte()
+		tag, err := ReadZigZag(valBuff)		
 		if err != nil {
 			log.Printf("error while reading tag: %v\n", err)
 			return err
 		}
 		partitionsRec.Tag = tag 
 
-		partitionsTopicMap[validId] = append(partitionsTopicMap[validId], partitionsRec)
 		break
 	}	
 	
