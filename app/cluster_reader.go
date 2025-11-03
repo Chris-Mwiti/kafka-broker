@@ -82,16 +82,16 @@ type PartitionRec struct {
 	Id int32
 	TopicId [16]byte
 	ReplicArrLen uint8
-	ReplicArr int32
+	ReplicArr []int32
 	SyncReplicArrLen uint8
-	SyncReplicaArr int32
+	SyncReplicaArr []int32
 	RemoveReplicaLenArr uint8
 	AddReplicaArr uint8
 	Leader int32
 	LeaderEpoch int32
 	PartitionEpoch int32
-	DirectoriesLen int8
-	DirectoryArr [16]byte
+	DirectoriesLen uint8
+	DirectoryArr [][]byte
 	Tag uint8
 } 
 var partitionsTopicMap = make(map[uuid.UUID][]PartitionRec)
@@ -114,10 +114,10 @@ func readClusterMetaData(path string)(*bytes.Buffer, error){
 }
 
 
-func processClusterData(buff *bytes.Buffer)([]*RecordBatch, error){
+func processClusterData(buff *bytes.Buffer)([]RecordBatch, error){
 	//first we need to extract the actual length of the bytes
 	//from this data we can then use to generate batch records
-	batches := make([]*RecordBatch, 0)
+	batches := make([]RecordBatch, 0)
 
 	for buff.Len() > 0 {
 		batch := RecordBatch{}
@@ -158,6 +158,7 @@ func processClusterData(buff *bytes.Buffer)([]*RecordBatch, error){
 			return nil, errors.New("error while batch reading")
 		}
 
+		batches = append(batches, batch)
 	}
 
 	return batches, nil
@@ -321,12 +322,12 @@ func NewRecordReader(buff *bytes.Buffer)(*Record, error){
 
 	//create a new buff for val content manipulation
 	valBuff := bytes.NewBuffer(val)
-	recHeader, err := NewValHeader(valBuff)
+	valHeader, err := NewValHeader(valBuff)
 	if err != nil {
 		log.Printf("error while creating val header: %v\n", err)
 		return nil, errors.New("error while creating val header")
 	}
-	err = recHeader.processType(valBuff)
+	err = valHeader.processType(valBuff)
 	if err != nil {
 		log.Printf("error while processing record type: %v\n", err)
 		return nil, errors.New("error while processing record type")
@@ -433,6 +434,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			log.Printf("error while parsing topic id: %v\n", err)
 			return errors.New("error while parsing topic id")
 		}
+		topic.Id = validId
 
 		tag, err := valBuff.ReadByte()
 		if err != nil {
@@ -441,6 +443,128 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 		topic.Tag = tag	
 		topicLevelMap[validId] = topic	
+		break
+	case 3:
+		partitionsRec := PartitionRec{} 
+
+		partitionsRec.Header = *valHeader
+		var partitionsId int32
+		if err := binary.Read(valBuff, binary.BigEndian, &partitionsId); err != nil {
+			log.Printf("error while reading partitions id")
+			return err
+		}
+
+		lR := io.LimitReader(valBuff, 16)
+		var topicId []byte
+		if _, err := lR.Read(topicId); err != nil {
+			log.Printf("error while limit reading the topic uuid: %v\n", err)
+			return err
+		}
+		//parse the uuid and check whether it is a valid uuid
+		validId, err := uuid.ParseBytes(topicId)
+		if err != nil {
+			log.Printf("error while parsing topic id: %v\n", err)
+			return errors.New("error while parsing topic id")
+		}
+		partitionsRec.TopicId = validId
+
+		replicArrlen, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while creating replic arr len %v\n", err)
+			return errors.New("error while extracting replic arr len")
+		}
+	  partitionsRec.ReplicArrLen = replicArrlen
+		replicArr := make([]int32, replicArrlen - 1)
+		for i := 0; i < int(replicArrlen - 1); i++ {
+			var replic int32
+			if err := binary.Read(valBuff, binary.BigEndian, &replic); err != nil {
+				log.Printf("error while extracting to replic buff: %v\n", err)
+				return errors.New("error while extracting replic buff")
+			}
+			replicArr = append(replicArr, replic)
+		}
+		partitionsRec.ReplicArr = replicArr
+
+		inSyncArrLen, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while creating in sync replic arr len %v\n", err)
+			return errors.New("error while extracting  in sync replic arr len")
+		}
+	  partitionsRec.SyncReplicArrLen = inSyncArrLen
+		inSyncArr := make([]int32, inSyncArrLen - 1)
+		for i := 0; i < int(replicArrlen - 1); i++ {
+			var sync int32
+			if err := binary.Read(valBuff, binary.BigEndian, &sync); err != nil {
+				log.Printf("error while extracting to in sync replic buff: %v\n", err)
+				return errors.New("error while extracting in sync replic buff")
+			}
+			inSyncArr = append(inSyncArr, sync)
+		}
+	  partitionsRec.SyncReplicaArr = inSyncArr
+	
+		remReplicArr, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while reading remReplicArr: %v\n", err)
+			return err
+		}
+	  partitionsRec.RemoveReplicaLenArr = remReplicArr - 1
+
+		addReplicArr, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while reading addReplicArr: %v\n", err)
+			return err
+		}
+		partitionsRec.RemoveReplicaLenArr = addReplicArr - 1
+
+		var leaderId int32
+	  if err := binary.Read(valBuff, binary.BigEndian, &leaderId); err != nil {
+			log.Printf("error while reading leaderId: %v\n", err)
+			return err
+		}
+	  partitionsRec.Leader = leaderId
+
+		var leaderEpoch int32
+		if err := binary.Read(valBuff, binary.BigEndian, &leaderEpoch); err != nil {
+			log.Printf("error while reading leaderEpoch: %v\n", err)
+			return err
+		}
+		partitionsRec.LeaderEpoch = leaderEpoch
+
+		var partitionEpoch int32
+		if err := binary.Read(valBuff, binary.BigEndian, &partitionEpoch); err != nil {
+			log.Printf("error while reading leaderEpoch: %v\n", err)
+			return err
+		}
+		partitionsRec.PartitionEpoch = partitionEpoch
+
+		directoriesArrLen, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while creating in sync replic arr len %v\n", err)
+			return errors.New("error while extracting  in sync replic arr len")
+		}
+		partitionsRec.DirectoriesLen = directoriesArrLen
+
+
+		directoriesArr := make([][]byte,  directoriesArrLen- 1)
+		for i := 0; i < int(replicArrlen - 1); i++ {
+			var dir []byte
+			lR := io.LimitReader(valBuff, 16)
+			if _,err := lR.Read(dir); err != nil {
+				log.Printf("error while reading dir content: %v\n", err)
+				return err
+			}
+			directoriesArr = append(directoriesArr, dir)
+		}
+		partitionsRec.DirectoryArr = directoriesArr
+
+		tag, err := valBuff.ReadByte()
+		if err != nil {
+			log.Printf("error while reading tag: %v\n", err)
+			return err
+		}
+		partitionsRec.Tag = tag 
+
+		partitionsTopicMap[validId] = append(partitionsTopicMap[validId], partitionsRec)
 		break
 	}	
 	
