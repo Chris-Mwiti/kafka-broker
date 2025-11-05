@@ -75,7 +75,7 @@ type TopicLevelRec struct {
 	Id [16]byte
 	Tag int64
 }
-var TopicLevelMap = make(map[uuid.UUID]TopicLevelRec)
+var TopicLevelMap = make(map[string]TopicLevelRec)
 
 type PartitionRec struct {
 	Header ValHeader
@@ -94,7 +94,7 @@ type PartitionRec struct {
 	DirectoryArr [][]byte
 	Tag int64
 } 
-var PartitionsTopicMap = make(map[uuid.UUID][]PartitionRec)
+var TopicPartiotionsMap = make(map[uuid.UUID][]PartitionRec)
 
 func ReadClusterMetaData(path string)(*bytes.Buffer, error){
 	if _,err := os.Stat(path); os.IsNotExist(err){
@@ -443,7 +443,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			return err
 		}
 		topic.Tag = tag	
-		TopicLevelMap[validId] = topic	
+		TopicLevelMap[string(topicContent)] = topic	
 		break
 	case 3:
 		partitionsRec := PartitionRec{} 
