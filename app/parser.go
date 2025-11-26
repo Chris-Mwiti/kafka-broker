@@ -1,7 +1,7 @@
 package main
 
 import (
-
+	"bytes"
 	"encoding/binary"
 	"log"
 )
@@ -34,6 +34,7 @@ func (pr *ParseRequest) ErrorCode()(uint16) {
 }
 
 func (c *Conn) handleApiRequest(data []byte)([]byte,error){
+	buff := new(bytes.Buffer)
 	//check that the message size is a 32 bits(signed) 
 	
 	//payload structure: []byte{message_size+header+body}
@@ -54,31 +55,46 @@ func (c *Conn) handleApiRequest(data []byte)([]byte,error){
 
 	//request payload
 	//@todo: Implment manipulation using byte buffers instead of byte storage itself
-	msgSizeBytes := data[0:4]
-	requestApiKeyBytes := data[4:6]
-	requestApiVersionBytes := data[6:8]
-	correlationIdBytes := data[8:]
 
-	msgSize := binary.BigEndian.Uint32(msgSizeBytes)	
-	requestApiKey := binary.BigEndian.Uint16(requestApiKeyBytes)
-	requestApiVersion := binary.BigEndian.Uint16(requestApiVersionBytes)
-	correlationId := binary.BigEndian.Uint32(correlationIdBytes)
+	var msgSize uint32 
+	if err := binary.Read(buff, binary.BigEndian, &msgSize); err != nil {
+		log.Printf("error while reading message size")
+		return nil, err
+	}
+	var reqApiKey uint16 
+	if err := binary.Read(buff, binary.BigEndian, &reqApiKey); err != nil {
+		log.Printf("error while readint request api key")
+		return nil, err
+	}
+
+	var reqApiVersion uint16
+	if err := binary.Read(buff, binary.BigEndian, &reqApiVersion); err != nil {
+		log.Printf("error while reading request api version")
+		return nil, err
+	}
+	
+	var correlationId uint32
+	if err := binary.Read(buff, binary.BigEndian, &correlationId); err != nil {
+		log.Printf("error while reading correlation id")
+		return nil, err
+	}
+
 
 	response := ParseRequest{
 		RequestMsgSize: msgSize,
-		RequestApiKey: requestApiKey,
-		RequestApiVersion: requestApiVersion,
+		RequestApiKey: reqApiKey,
+		RequestApiVersion: reqApiVersion,
 		RequestCorrelationId: correlationId,
 	}
 
 	res := NewApiVersionResponse(&response)
 
-	buff,err := res.Encode()
+	buf,err := res.Encode()
 	if err != nil {
 		log.Printf("error while encoding response: %v\n", err)
 	}
 
-	return buff, nil
+	return buf, nil
 }
 
 func (conn *Conn) handleTopicRequest(data []byte)([]byte, error){

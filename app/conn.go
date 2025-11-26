@@ -60,6 +60,7 @@ func (c *Conn) HandleConn()(error){
 			return err
 		}
 
+		//@todo: switch statement to handle multiple api version requests
 		if isVersion18 {
 			response,err := c.handleApiRequest(buff.Bytes())
 			if err != nil {
