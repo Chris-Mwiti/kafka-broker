@@ -35,32 +35,24 @@ func (pr *ParseRequest) ErrorCode()(uint16) {
 
 func (c *Conn) handleApiRequest(data []byte)([]byte,error){
 	buff := new(bytes.Buffer)
-	//check that the message size is a 32 bits(signed) 
 	
 	//payload structure: []byte{message_size+header+body}
 	//message_size: 32bits(4 bytes)
 	//header: correlationId(4 bytes)
 	//body: 
-
-	//so the total bits of data expected is 64bits...the relative data byte array should be [8]byte{}
-
-	//@todo: How do i check that the first 4 bytes of the data are present?
 	log.Printf("the following is the data is: %v\n", data)
 
 	if len(data) < 12 {
 		log.Printf("error. the received data has a short message size: %v", len(data))
 		return nil,ERR_MESSAGE_SIZE
 	} 
-
-
-	//request payload
-	//@todo: Implment manipulation using byte buffers instead of byte storage itself
-
+	
 	var msgSize uint32 
 	if err := binary.Read(buff, binary.BigEndian, &msgSize); err != nil {
 		log.Printf("error while reading message size")
 		return nil, err
 	}
+
 	var reqApiKey uint16 
 	if err := binary.Read(buff, binary.BigEndian, &reqApiKey); err != nil {
 		log.Printf("error while readint request api key")
@@ -80,14 +72,14 @@ func (c *Conn) handleApiRequest(data []byte)([]byte,error){
 	}
 
 
-	response := ParseRequest{
+	request := ParseRequest{
 		RequestMsgSize: msgSize,
 		RequestApiKey: reqApiKey,
 		RequestApiVersion: reqApiVersion,
 		RequestCorrelationId: correlationId,
 	}
 
-	res := NewApiVersionResponse(&response)
+	res := NewApiVersionResponse(&request)
 
 	buf,err := res.Encode()
 	if err != nil {
