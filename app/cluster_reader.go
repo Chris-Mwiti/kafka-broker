@@ -547,7 +547,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 
 
 		directoriesArr := make([][]byte,  directoriesArrLen- 1)
-		for i := 0; i < int(replicArrlen - 1); i++ {
+		for i := 0; i < int(directoriesArrLen - 1); i++ {
 			var dir []byte
 			lR := io.LimitReader(valBuff, 16)
 			if _,err := lR.Read(dir); err != nil {
@@ -565,6 +565,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 		partitionsRec.Tag = tag 
 
+		TopicPartiotionsMap[validId] = append(TopicPartiotionsMap[uuid.UUID(topicId)], partitionsRec)
 		break
 	}	
 	
