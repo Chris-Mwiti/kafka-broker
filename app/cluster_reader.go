@@ -565,7 +565,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 		partitionsRec.Tag = tag 
 
-		TopicPartiotionsMap[validId] = append(TopicPartiotionsMap[uuid.UUID(topicId)], partitionsRec)
+		TopicPartiotionsMap[validId] = append(TopicPartiotionsMap[validId], partitionsRec)
 		break
 	}	
 	
