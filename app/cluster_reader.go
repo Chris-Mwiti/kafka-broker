@@ -242,7 +242,7 @@ func BatchReader(recordBatch *RecordBatch, buff *bytes.Buffer)(error){
 		log.Printf("error while reading record len: %v\n", err)
 		return  errors.New("error while extracting record len")
 	}
-	recordBatch.RecordsLen = uint32(recordLen)
+	recordBatch.RecordsLen = uint32(recordLen) //used to indicate the no of expected records
 
 	records := make([]Record, recordLen)
 
