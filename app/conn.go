@@ -42,6 +42,8 @@ func (c *Conn) HandleConn()(error){
 
 	for {
 		buff.Reset()
+
+		//@todo: Implement a loader that will load the received data directly to buffer 
 		data := make([]byte, 100)
 		_, err := c.conn.Read(data)
 		buff.Write(data)
@@ -75,6 +77,14 @@ func (c *Conn) HandleConn()(error){
 				return err
 			}
 		} else {
+
+			//load the cluster metadata file
+			clusterData, err := ReadClusterFile()
+			if err != nil {
+				log.Printf("error while processing cluster file: %v\n", err)
+				return nil
+			}
+
 			response,err := c.handleTopicRequest(buff.Bytes())
 			log.Printf("handl topic request: %x\n", response)
 			if err != nil {
