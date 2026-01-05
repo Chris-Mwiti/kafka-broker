@@ -244,14 +244,17 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (*topicResponseBody
 				return nil, err
 			}
 
+			partitionsArrlen := len(partitionsArr) + 1
+
 			//this is propably wrong to do since we may get an out of bound error while trying to access the index
 			parsedTopics[i] = ResponseTopic{
 				len: topic.len,
 				contents: topic.name,
 				id: storedTopic.Id,
-				errorCode: int16(3),
+				errorCode: int16(0),
 				isInternal: isInternal,
 				partitionsArr: partitionsArr,
+				partitionsArrLen: uint32(partitionsArrlen),
 				topicAuthOps: topicAuthOps,
 				tagBuf: tagBuf,
 			} 	
@@ -295,9 +298,9 @@ type ResponseTopic struct {
 	len uint8
 	contents []byte
 	id [16]byte
+	partitionsArrLen uint32
 	partitionsArr []topicPartition
 	isInternal uint8
-	partitionsArrLen uint32
 	topicAuthOps int32
 	tagBuf byte
 }
@@ -322,6 +325,38 @@ func (rt *ResponseTopic) Encode() ([]byte, error) {
 	if err := binary.Write(buff, binary.BigEndian, rt.id); err != nil {
 		log.Printf("error while encoding topic id: %v\n", err)
 		return nil, errors.New("error while encoding id")
+	}
+
+	if err := binary.Write(buff, binary.BigEndian, rt.partitionsArrLen); err != nil {
+		log.Printf("error while encoding the partitions arr len: %v\n", err)
+		return nil, errors.New("error while encoding arr partitions len")
+	}
+
+	partitionArrBuff := new(bytes.Buffer)
+
+	for _, partition := range rt.partitionsArr {
+		data, err := partition.Encode()
+		if err != nil {
+			log.Printf("error while encoding partition")
+			return nil, err
+		}
+		partitionArrBuff.Write(data)
+	}
+
+	if _, err := buff.Write(partitionArrBuff.Bytes()); err != nil {
+		log.Printf("error while writing partition arr buff: %v\n", err)
+		return nil, errors.New("error while encoding partition arr buff")
+	}
+	
+
+	if err := binary.Write(buff, binary.BigEndian, rt.topicAuthOps); err != nil {
+		log.Printf("error while encoding topic authorized ops: %v\n", err)
+		return nil, errors.New("error while encoding topic authorized ops")
+	}
+
+	if err := binary.Write(buff, binary.BigEndian, rt.tagBuf); err != nil {
+		log.Printf("error while encoding tag buf: %v\n", err)
+		return nil, errors.New("error while encoding tag buf")
 	}
 	
 	return buff.Bytes(), nil
