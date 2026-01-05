@@ -85,7 +85,7 @@ func (c *Conn) HandleConn()(error){
 				return nil
 			}
 
-			response,err := c.handleTopicRequest(buff.Bytes())
+			response,err := c.handleTopicRequest(buff.Bytes(), *clusterData)
 			log.Printf("handl topic request: %x\n", response)
 			if err != nil {
 				//@todo: Improve on the error handling logic
