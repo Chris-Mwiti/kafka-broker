@@ -17,9 +17,9 @@ type TopicResponse struct {
 	tagBuf byte
 }
 
-func NewTopicResponse(req ParsedTopicApiRequest)(TopicResponse, error){
+func NewTopicResponse(req ParsedTopicApiRequest, clusterFileRec ClusterFileRes)(TopicResponse, error){
 	header := NewTopicResponseHeader(req.correlationId)
-	body, err := NewTopicResponseBody(req.topicArrLen, req.topics)
+	body, err := NewTopicResponseBody(req.topicArrLen, req.topics, clusterFileRec)
 	
 	if err != nil {
 		log.Printf("error while creating topic response body: %v\n", err)
@@ -180,7 +180,7 @@ func (tp *topicPartition) Encode() ([]byte, error){
 }
 
 //@todo: Later on in the future the loaded topic partitions should be temporarily stored in a in mem db.
-func NewTopicPartitions(topicId [16]byte)([]topicPartition, error){
+func NewTopicPartitions(topicId [16]byte, topicPartitionRec map[uuid.UUID][]PartitionRec)([]topicPartition, error){
 	valid, err := uuid.ParseBytes(topicId[:])
 
 	if err != nil {
@@ -191,7 +191,7 @@ func NewTopicPartitions(topicId [16]byte)([]topicPartition, error){
 	topicPartitions := make([]topicPartition, 0)
 
 	//this might be a critical breaking point for the application
-	partitions, ok := TopicPartiotionsMap[valid]
+	partitions, ok := topicPartitionRec[valid]
 	if !ok {
 		return nil, errors.New("partitions for this topic are not found")
 	}  
@@ -220,7 +220,7 @@ type topicResponseBody struct {
 	topics []ResponseTopic
 }
 
-func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (*topicResponseBody, error){
+func NewTopicResponseBody(topicArrLen uint8, topics []Topic, clusterFileRec ClusterFileRes) (*topicResponseBody, error){
 	log.Printf("topics: %v\n", topics)
 
 	//here am probably gonna get an error...but it generally does is 
@@ -228,7 +228,7 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (*topicResponseBody
 	if topicArrLen > 0 {
 		for i := 0; i < int(topicArrLen); i++ {
 			topic := topics[i]
-			storedTopic, ok := TopicLevelMap[string(topic.name)]
+			storedTopic, ok := clusterFileRec.TopicLevelRec[string(topic.name)] 
 
 			if !ok {
 				log.Printf("topic not found")
@@ -239,7 +239,7 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic) (*topicResponseBody
 			isInternal := uint8(0)
 			topicAuthOps := int32(0)
 			tagBuf := uint8(0)
-			partitionsArr, err := NewTopicPartitions(storedTopic.Id)
+			partitionsArr, err := NewTopicPartitions(storedTopic.Id, clusterFileRec.PartitionRec)
 			if err != nil {
 				return nil, err
 			}

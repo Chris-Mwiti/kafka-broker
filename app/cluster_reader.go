@@ -15,6 +15,7 @@ const (
 	BASE_CLUSTER_URL = "/tmp/kraft-combined-logs/"
 	CLUSTER_METADATA_URL = "__cluster_metadata-0/"
 	FILE = "00000000000000000000.log"
+	PATH = BASE_CLUSTER_URL + CLUSTER_METADATA_URL + FILE
 )
 
 type RecordBatch struct {
@@ -96,7 +97,7 @@ type PartitionRec struct {
 } 
 var TopicPartiotionsMap = make(map[uuid.UUID][]PartitionRec)
 
-func ReadClusterMetaData(path string)(*bytes.Buffer, error){
+func readClusterMetaData(path string)(*bytes.Buffer, error){
 	if _,err := os.Stat(path); os.IsNotExist(err){
 		log.Printf("error while checking file status: %v\n", err)
 		return nil, errors.New("file does not exit")	
@@ -114,7 +115,7 @@ func ReadClusterMetaData(path string)(*bytes.Buffer, error){
 }
 
 
-func ProcessClusterData(buff *bytes.Buffer)([]RecordBatch, error){
+func processClusterData(buff *bytes.Buffer)([]RecordBatch, error){
 	//first we need to extract the actual length of the bytes
 	//from this data we can then use to generate batch records
 	batches := make([]RecordBatch, 0)
@@ -152,7 +153,7 @@ func ProcessClusterData(buff *bytes.Buffer)([]RecordBatch, error){
 
 		batchBuff := bytes.NewBuffer(batchBytes)
 		
-		err := BatchReader(&batch,batchBuff)
+		err := batchReader(&batch,batchBuff)
 		if err != nil{
 			log.Printf("error while batch reading: %v\n", err)
 			return nil, errors.New("error while batch reading")
@@ -165,7 +166,7 @@ func ProcessClusterData(buff *bytes.Buffer)([]RecordBatch, error){
 }
 
 
-func BatchReader(recordBatch *RecordBatch, buff *bytes.Buffer)(error){
+func batchReader(recordBatch *RecordBatch, buff *bytes.Buffer)(error){
 
 	var partitionLeaderEpoch int32
 	if err := binary.Read(buff, binary.BigEndian, &partitionLeaderEpoch); err != nil {
@@ -247,7 +248,7 @@ func BatchReader(recordBatch *RecordBatch, buff *bytes.Buffer)(error){
 	records := make([]Record, recordLen)
 
 	for i := 0; i < int(recordLen); i++ {
-		record, err := NewRecordReader(buff)
+		record, err := newRecordReader(buff)
 		if err != nil {
 			log.Printf("error while creating new record: %v\n", err)
 			return  errors.New("error while creating new record")
@@ -260,7 +261,7 @@ func BatchReader(recordBatch *RecordBatch, buff *bytes.Buffer)(error){
 	return nil
 }
 
-func NewRecordReader(buff *bytes.Buffer)(*Record, error){
+func newRecordReader(buff *bytes.Buffer)(*Record, error){
 	record := Record{}
 	
 	contentLen, err := ReadZigZag(buff) 
@@ -322,7 +323,7 @@ func NewRecordReader(buff *bytes.Buffer)(*Record, error){
 
 	//create a new buff for val content manipulation
 	valBuff := bytes.NewBuffer(val)
-	valHeader, err := NewValHeader(valBuff)
+	valHeader, err := newValHeader(valBuff)
 	if err != nil {
 		log.Printf("error while creating val header: %v\n", err)
 		return nil, errors.New("error while creating val header")
@@ -342,7 +343,7 @@ func NewRecordReader(buff *bytes.Buffer)(*Record, error){
 	return &record, nil
 }
 
-func NewValHeader(valBuff *bytes.Buffer)(*ValHeader, error){
+func newValHeader(valBuff *bytes.Buffer)(*ValHeader, error){
 	header := ValHeader{}
 	frameVersion, err := valBuff.ReadByte()
 	if err != nil {
@@ -570,4 +571,32 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 	}	
 	
 	return  nil
+}
+
+ type ClusterFileRes struct {
+	FeatureRec map[string]FeatureLevelRec
+  TopicLevelRec map[string]TopicLevelRec	
+  PartitionRec map[uuid.UUID][]PartitionRec
+}
+
+func ReadClusterFile() (*ClusterFileRes, error) {
+
+	buff, err := readClusterMetaData(PATH)
+	if err != nil {
+		log.Printf("error while reading cluster meta data: %v\n", err)
+		return nil, err 	
+	}
+
+
+	_, err = processClusterData(buff)
+	if err != nil {
+		log.Printf("error while processing cluster meta data: %v\n", err)
+		return nil, err
+	}
+
+	return &ClusterFileRes{
+		FeatureRec: FeatureLevelMap,
+		TopicLevelRec: TopicLevelMap,
+		PartitionRec: TopicPartiotionsMap,
+	}, nil
 }
