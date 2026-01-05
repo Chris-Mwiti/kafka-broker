@@ -73,6 +73,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		log.Printf("error while reading client id: %v\n", err)
 		return nil, errors.New("error while parsing client id")
 	}
+
 	if !utf8.Valid(clientId) {
 		return nil, errors.New("invalid client id")
 	}
@@ -107,6 +108,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 
 		log.Printf("topic len: %d for topic: %d", topicLen, i)
 
+		//checks the reader buff has the right amount of bytes
 		if reader.Len() < int(topicLen){
 			log.Printf("not enough bytes for topic: %d\n", i)
 			return nil, fmt.Errorf("error not enough bytes for topic: %d\n", i)
@@ -115,7 +117,6 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		//compact arrays come up with a +1 byte 
 		topicLen--
 		
-		//@todo: There might be edge cases error like when the compact array is empty
 		topic := make([]byte, topicLen)
 		if _, err := reader.Read(topic); err != nil {
 			log.Printf("error while reading topic name: %v\n", err)

@@ -44,7 +44,11 @@ func (tr *TopicResponse) Encode() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	buff.Write(headerBuf)
+	
+	if _, err := buff.Write(headerBuf); err != nil {
+		log.Printf("error while writing topic header response: %v", err)
+		return nil, err
+	}
 
 	bodyBuf, err := tr.body.Encode()
 	if err != nil {
@@ -67,6 +71,8 @@ func (tr *TopicResponse) Encode() ([]byte, error) {
 	}
 
 	finalBuff := new(bytes.Buffer)
+
+	//setting the msgSize field
 	tr.msgSize = uint32(buff.Len())
 
 	if err := binary.Write(finalBuff, binary.BigEndian, tr.msgSize); err != nil {
@@ -119,12 +125,61 @@ func (tp *topicPartition) Encode() ([]byte, error){
 	}
 
 	if err := binary.Write(buff, binary.BigEndian, tp.leaderId); err != nil {
-		log.Printf("error while writing partition leader: %v\n", err)
+		log.Printf("error while writing partition leader id: %v\n", err)
 		return nil, err
 	}
 
+	if err := binary.Write(buff, binary.BigEndian, tp.leaderEpoch); err != nil {
+		log.Printf("error while writing leader epoch: %v\n", err)
+		return nil, err
+	}
+
+	if err := binary.Write(buff, binary.BigEndian, tp.replicArrlen); err != nil {
+		log.Printf("error while writing replicaArr len: %v\n", err)
+		return nil, err
+	}
+
+	if err := binary.Write(buff, binary.BigEndian, tp.replicArr); err != nil {
+		log.Printf("error while writing replicaArr: %v\n", err)
+		return nil, err
+	}
+
+	if err := binary.Write(buff, binary.BigEndian, tp.isrArrLen); err != nil {
+		log.Printf("error while writing isrArrLen: %v\n", err)
+		return nil, err
+	}
+
+	if err := binary.Write(buff, binary.BigEndian, tp.isrArr); err != nil {
+		log.Printf("error while writing isrArr: %v\n", err)
+		return nil, err
+	}
+
+	//there might be an error in this section....can't find the elr from the source partition
+	if err := binary.Write(buff, binary.BigEndian, tp.lastKnowELR); err != nil {
+		log.Printf("error while writing last known elr: %v\n", err)
+		return nil, err
+	}
+
+	if err := binary.Write(buff, binary.BigEndian, tp.lastKnowELR); err != nil {
+		log.Printf("error while writing last know elr: %v\n", err)
+		return nil, err
+	}
+
+	if err := binary.Write(buff, binary.BigEndian, tp.offlineRepl); err != nil {
+		log.Printf("error while writing offline leader replica: %v\n", err)
+		return nil, err
+	}
+
+
+	if err := binary.Write(buff, binary.BigEndian, tp.tag); err != nil {
+		log.Printf("error while writing tag buff: %v\n", err)
+		return nil, err
+	}
+
+	return buff.Bytes(), nil
 }
 
+//@todo: Later on in the future the loaded topic partitions should be temporarily stored in a in mem db.
 func NewTopicPartitions(topicId [16]byte)([]topicPartition, error){
 	valid, err := uuid.ParseBytes(topicId[:])
 
@@ -135,6 +190,7 @@ func NewTopicPartitions(topicId [16]byte)([]topicPartition, error){
 
 	topicPartitions := make([]topicPartition, 0)
 
+	//this might be a critical breaking point for the application
 	partitions, ok := TopicPartiotionsMap[valid]
 	if !ok {
 		return nil, errors.New("partitions for this topic are not found")
