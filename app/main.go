@@ -31,6 +31,7 @@ func (s *Server) Listen() error {
 		}
 
 		go func(conn net.Conn){
+
 			defer conn.Close()
 
 			clientHandler := &Conn{conn: conn} 
