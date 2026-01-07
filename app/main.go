@@ -46,6 +46,7 @@ func (s *Server) Listen() error {
 func main() {
 	server, err := NewServer("tcp", "0.0.0.0:9092")
 
+
 	if err != nil {
 		log.Panicf("error while starting up server %v\n", err)
 	}
