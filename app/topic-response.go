@@ -205,7 +205,7 @@ func NewTopicPartitions(topicId [16]byte, topicPartitionRec map[uuid.UUID][]Part
 		topicPartition.leaderId = partition.Leader
 		topicPartition.leaderEpoch = partition.LeaderEpoch
 		topicPartition.replicArrlen = partition.ReplicArrLen
-    topicPartition.replicArr = append(topicPartition.replicArr, partition.ReplicArr...)
+    topicPartition.replicArr = partition.ReplicArr
 		topicPartition.isrArrLen = partition.SyncReplicArrLen
 		topicPartition.isrArr = partition.SyncReplicaArr
 
