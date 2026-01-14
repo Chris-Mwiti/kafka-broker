@@ -33,42 +33,40 @@ func (pr *ParseRequest) ErrorCode()(uint16) {
 	return errCode
 }
 
-func (c *Conn) handleApiRequest(data []byte)([]byte,error){
-	buff := new(bytes.Buffer)
-	
-	//payload structure: []byte{message_size+header+body}
+func NewApiVersionRequest(buff *bytes.Buffer)(ParseRequest, error){
+//payload structure: []byte{message_size+header+body}
 	//message_size: 32bits(4 bytes)
 	//header: correlationId(4 bytes)
 	//body: 
-	log.Printf("the following is the data is: %v\n", data)
+	log.Printf("the following is the data is: %v\n", buff.Len())
 
-	if len(data) < 12 {
-		log.Printf("error. the received data has a short message size: %v", len(data))
-		return nil,ERR_MESSAGE_SIZE
+	if buff.Len() < 12 {
+		log.Printf("error. the received data has a short message size: %v", buff.Len())
+		return ParseRequest{},ERR_MESSAGE_SIZE
 	} 
 	
 	var msgSize uint32 
 	if err := binary.Read(buff, binary.BigEndian, &msgSize); err != nil {
 		log.Printf("error while reading message size")
-		return nil, err
+		return ParseRequest{}, err
 	}
 
 	var reqApiKey uint16 
 	if err := binary.Read(buff, binary.BigEndian, &reqApiKey); err != nil {
 		log.Printf("error while readint request api key")
-		return nil, err
+		return ParseRequest{}, err
 	}
 
 	var reqApiVersion uint16
 	if err := binary.Read(buff, binary.BigEndian, &reqApiVersion); err != nil {
 		log.Printf("error while reading request api version")
-		return nil, err
+		return ParseRequest{}, err
 	}
 	
 	var correlationId uint32
 	if err := binary.Read(buff, binary.BigEndian, &correlationId); err != nil {
 		log.Printf("error while reading correlation id")
-		return nil, err
+		return ParseRequest{}, err
 	}
 
 
@@ -79,6 +77,18 @@ func (c *Conn) handleApiRequest(data []byte)([]byte,error){
 		RequestCorrelationId: correlationId,
 	}
 
+
+	return request, nil
+}
+
+func (c *Conn) handleApiRequest(data []byte)([]byte,error){
+	reader := bytes.NewBuffer(data)	
+	request, err := NewApiVersionRequest(reader)
+	if err != nil {
+		log.Printf("error while creating new api version request")
+		return nil, err
+	}
+	
 	res := NewApiVersionResponse(&request)
 
 	buf,err := res.Encode()
