@@ -85,5 +85,30 @@ func GetItemsFeatureBucket(db *bolt.DB, key string)(*FeatureLevelRec,error){
 	return &record, nil
 }
 
+func DeleteItemFeatureBucket(db *bolt.DB, key string)(error){
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("feature_bucket"))
+
+		if bucket == nil {
+			return errors.New("bucket does not exist")
+		}
+
+		err := bucket.Delete([]byte(key))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	
+	if err != nil {
+		log.Printf("error while getting item: %v\n", err)
+		return  err
+
+	}
+	return nil
+}
+
+
 
 
