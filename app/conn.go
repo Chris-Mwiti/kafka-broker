@@ -48,11 +48,11 @@ func (c *Conn) HandleConn()(error){
 		_, err := c.conn.Read(data)
 		buff.Write(data)
 		if err != nil {
-			log.Printf("error while receiving data from conn %v\n",err)
-			if err == io.EOF{
-				log.Println("EOF")
-				return ERR_EOF 
+			if err == io.EOF {
+				log.Println("error from reading from connection: EOF")
+				return ERR_EOF
 			}
+			log.Printf("error while receiving data from conn %v\n", err)
 			return err
 		}
 
