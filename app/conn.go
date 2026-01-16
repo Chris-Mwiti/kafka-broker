@@ -44,7 +44,7 @@ func (c *Conn) HandleConn()(error){
 		buff.Reset()
 
 		//@todo: Implement a loader that will load the received data directly to buffer 
-		data := make([]byte, 500)
+		data := make([]byte, 1000)
 		_, err := c.conn.Read(data)
 		buff.Write(data)
 		if err != nil {
