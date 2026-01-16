@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/boltdb/bolt"
-	"github.com/google/uuid"
 )
 
 func CreatePartitionBucket(db *bolt.DB)(error){
