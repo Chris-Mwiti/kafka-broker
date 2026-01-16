@@ -369,6 +369,7 @@ func newValHeader(valBuff *bytes.Buffer)(*ValHeader, error){
 	return &header, nil
 }
 
+
 func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 
 	switch valHeader.RecordType {
