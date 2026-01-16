@@ -50,7 +50,6 @@ func (c *Conn) HandleConn()(error){
 		if err != nil {
 			if err == io.EOF {
 				log.Println("error from reading from connection: EOF")
-				return ERR_EOF
 			}
 			log.Printf("error while receiving data from conn %v\n", err)
 			return err
