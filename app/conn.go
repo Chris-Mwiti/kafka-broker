@@ -14,7 +14,8 @@ type Conn struct {
 
 //@todo: later on in the future modify the function to check multiple version
 func checkApiVersion18(payload []byte)(bool, error){
-	buff := bytes.NewBuffer(payload)
+	buff := new(bytes.Buffer)
+	buff.Write(payload)
 	var msgSize uint32
 	if err := binary.Read(buff, binary.BigEndian, &msgSize); err != nil {
 		log.Printf("error while reading check version msg size")
