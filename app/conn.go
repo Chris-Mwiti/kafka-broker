@@ -28,6 +28,7 @@ func checkApiVersion18(payload []byte)(bool, error){
 		return false, err
 	}
 
+	log.Printf("api key: %v\n", apiKey)
 	 
 	if apiKey == 18 {
 		return true, nil
