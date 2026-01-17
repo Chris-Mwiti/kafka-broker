@@ -581,6 +581,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 }
 
 func ReadClusterFile() (*ClusterFileRes, error) {
+	log.Println("reading cluster file")
 
 	buff, err := readClusterMetaData(PATH)
 	if err != nil {
@@ -594,6 +595,8 @@ func ReadClusterFile() (*ClusterFileRes, error) {
 		log.Printf("error while processing cluster meta data: %v\n", err)
 		return nil, err
 	}
+
+	log.Println("finished reading cluster file")
 
 	return &ClusterFileRes{
 		FeatureRec: FeatureLevelMap,
