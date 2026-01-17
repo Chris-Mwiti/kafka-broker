@@ -76,7 +76,7 @@ func (c *Conn) HandleConn()(error){
 				return err
 			}
 		} else {
-
+			log.Printf("logging a topic request functionality")
 			//load the cluster metadata file
 			clusterData, err := ReadClusterFile()
 			if err != nil {
