@@ -110,7 +110,7 @@ func readClusterMetaData(path string)(*bytes.Buffer, error){
 
 	//create a new buff that will be used to manipulate the retrieved data
 	buff := bytes.NewBuffer(fileBytes)
-
+	log.Printf("file bytes: %v\n", buff.Bytes())
 	return buff, nil
 }
 
