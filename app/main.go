@@ -25,7 +25,7 @@ func (s *Server) Listen() error {
 	log.Printf("Server listening on %s://%s", s.proto, s.addr)
 
 	//create a new database connection
-	db, err := bolt.Open(".././db/cluster.db", 0766, bolt.DefaultOptions)
+	db, err := bolt.Open("../db/cluster.db", 0766, bolt.DefaultOptions)
 	if err != nil {
 		log.Printf("error while establishing database connection: %v\n", err)
 		return err
