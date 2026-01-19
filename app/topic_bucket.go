@@ -23,6 +23,8 @@ func CreateTopicBucket(db *bolt.DB)(error){
 		return err
 	}
 
+
+
 	return nil
 }
 
