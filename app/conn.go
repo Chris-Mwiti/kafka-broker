@@ -6,10 +6,13 @@ import (
 	"io"
 	"log"
 	"net"
+
+	"github.com/boltdb/bolt"
 )
 
 type Conn struct {
 	conn net.Conn
+	db *bolt.DB
 }
 
 //@todo: later on in the future modify the function to check multiple version
@@ -39,6 +42,7 @@ func checkApiVersion18(payload []byte)(bool, error){
 
 //Responsible for handle normal kafka api requests
 //kafka responses are in this format: message_size, header, body
+//adding some db configurations
 func (c *Conn) HandleConn()(error){
 	buff :=  new(bytes.Buffer)
 
@@ -79,14 +83,7 @@ func (c *Conn) HandleConn()(error){
 			}
 		} else {
 			log.Printf("logging a topic request functionality")
-			//load the cluster metadata file
-			clusterData, err := ReadClusterFile()
-			if err != nil {
-				log.Printf("error while processing cluster file: %v\n", err)
-				return nil
-			}
-
-			response,err := c.handleTopicRequest(buff.Bytes(), *clusterData)
+			response,err := c.handleTopicRequest(buff.Bytes(), c.db)
 			log.Printf("handl topic request: %x\n", response)
 			if err != nil {
 				//@todo: Improve on the error handling logic

@@ -32,18 +32,29 @@ func PutItemsPartitionBucket(db *bolt.DB, key string, item PartitionRec)(error){
 		if bucket == nil {
 			return errors.New("bucket does not exist")
 		}
-		//encode the item struct to byte format...gob encode
-		buff := new(bytes.Buffer)
-		encoder := gob.NewEncoder(buff)
-		err := encoder.Encode(item)
 
-		if err != nil {
-			return errors.Join(errors.New("error while putting item in partition bucket"), err)
+		existingBytes := bucket.Get([]byte(key))
+
+		var items []PartitionRec
+
+		if existingBytes != nil {
+			//decode the existing bytes
+			decoder := gob.NewDecoder(bytes.NewReader(existingBytes))
+			if err := decoder.Decode(&items); err != nil {
+				return err
+			}
 		}
 
-		err = bucket.Put([]byte(key), buff.Bytes())
-		if err != nil {
-			return errors.Join(errors.New("error while putting item in partition bucket"), err)
+		//append the new item to the decoded items
+		items = append(items, item)
+		var buff bytes.Buffer
+		encoder := gob.NewEncoder(&buff)
+		if err := encoder.Encode(items); err != nil {
+			return err
+		}
+
+		if err := bucket.Put([]byte(key), buff.Bytes()); err != nil {
+			return err 
 		}
 		return nil
 	})
@@ -55,9 +66,8 @@ func PutItemsPartitionBucket(db *bolt.DB, key string, item PartitionRec)(error){
 	 return nil
 }
 
-func GetItemsPartitionBucket(db *bolt.DB, key string)(*PartitionRec,error){
-	buff := new(bytes.Buffer)
-	var record PartitionRec
+func GetItemsPartitionBucket(db *bolt.DB, key string)(*[]PartitionRec,error){
+	var records []PartitionRec
 	err := db.View(func(tx *bolt.Tx) error {
 
 		bucket := tx.Bucket([]byte("partition_bucket"))
@@ -66,9 +76,8 @@ func GetItemsPartitionBucket(db *bolt.DB, key string)(*PartitionRec,error){
 		}
 
 		item := bucket.Get([]byte(key))
-		buff.Write(item)
-		decoder := gob.NewDecoder(buff)
-		err := decoder.Decode(&record)
+		decoder := gob.NewDecoder(bytes.NewReader(item))
+		err := decoder.Decode(&records)
 		if err != nil {
 			return err 
 		}
@@ -80,7 +89,7 @@ func GetItemsPartitionBucket(db *bolt.DB, key string)(*PartitionRec,error){
 		log.Printf("error while getting item: %v\n", err)
 		return nil, err
 	}
-	return &record, nil
+	return &records, nil
 }
 
 func DeleteItemPartitionBucket(db *bolt.DB, key string)(error){

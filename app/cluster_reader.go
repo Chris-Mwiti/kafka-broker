@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/boltdb/bolt"
 	"github.com/google/uuid"
 )
 
@@ -57,6 +58,7 @@ type ValHeader struct {
 	FrameVersion int8
 	RecordType int8
 	Version int8
+	db *bolt.DB
 }
 
 
@@ -115,7 +117,7 @@ func readClusterMetaData(path string)(*bytes.Buffer, error){
 }
 
 
-func processClusterData(buff *bytes.Buffer)([]RecordBatch, error){
+func processClusterData(buff *bytes.Buffer, db *bolt.DB)([]RecordBatch, error){
 	//first we need to extract the actual length of the bytes
 	//from this data we can then use to generate batch records
 	batches := make([]RecordBatch, 0)
@@ -153,7 +155,7 @@ func processClusterData(buff *bytes.Buffer)([]RecordBatch, error){
 
 		batchBuff := bytes.NewBuffer(batchBytes)
 		
-		err := batchReader(&batch,batchBuff)
+		err := batchReader(&batch,batchBuff, db)
 		if err != nil{
 			log.Printf("error while batch reading: %v\n", err)
 			return nil, errors.New("error while batch reading")
@@ -166,7 +168,7 @@ func processClusterData(buff *bytes.Buffer)([]RecordBatch, error){
 }
 
 
-func batchReader(recordBatch *RecordBatch, buff *bytes.Buffer)(error){
+func batchReader(recordBatch *RecordBatch, buff *bytes.Buffer, db *bolt.DB)(error){
 
 	var partitionLeaderEpoch int32
 	if err := binary.Read(buff, binary.BigEndian, &partitionLeaderEpoch); err != nil {
@@ -248,7 +250,7 @@ func batchReader(recordBatch *RecordBatch, buff *bytes.Buffer)(error){
 	records := make([]Record, recordLen)
 
 	for i := 0; i < int(recordLen); i++ {
-		record, err := newRecordReader(buff)
+		record, err := newRecordReader(buff, db)
 		if err != nil {
 			log.Printf("error while creating new record: %v\n", err)
 			return  errors.New("error while creating new record")
@@ -261,7 +263,7 @@ func batchReader(recordBatch *RecordBatch, buff *bytes.Buffer)(error){
 	return nil
 }
 
-func newRecordReader(buff *bytes.Buffer)(*Record, error){
+func newRecordReader(buff *bytes.Buffer, db *bolt.DB)(*Record, error){
 	record := Record{}
 	
 	contentLen, err := ReadZigZag(buff) 
@@ -323,7 +325,7 @@ func newRecordReader(buff *bytes.Buffer)(*Record, error){
 
 	//create a new buff for val content manipulation
 	valBuff := bytes.NewBuffer(val)
-	valHeader, err := newValHeader(valBuff)
+	valHeader, err := newValHeader(valBuff, db)
 	if err != nil {
 		log.Printf("error while creating val header: %v\n", err)
 		return nil, errors.New("error while creating val header")
@@ -343,7 +345,7 @@ func newRecordReader(buff *bytes.Buffer)(*Record, error){
 	return &record, nil
 }
 
-func newValHeader(valBuff *bytes.Buffer)(*ValHeader, error){
+func newValHeader(valBuff *bytes.Buffer, db *bolt.DB)(*ValHeader, error){
 	header := ValHeader{}
 	frameVersion, err := valBuff.ReadByte()
 	if err != nil {
@@ -365,6 +367,8 @@ func newValHeader(valBuff *bytes.Buffer)(*ValHeader, error){
 		return nil, errors.New("error while extracting record version")
 	}
 	header.Version = int8(version)
+
+	header.db = db
 
 	return &header, nil
 }
@@ -404,7 +408,18 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			return errors.New("error while extracting tag")
 		}
 		feature.Tag = tag
-		FeatureLevelMap[string(feature.Name)] = feature
+
+		err = CreateFeatureBucket(valHeader.db)
+		if err != nil {
+			log.Printf("database error: %v\n", err)
+			return err
+		}
+
+		err = PutItemsFeatureBucket(valHeader.db, string(feature.Name), feature)
+		if err != nil {
+			log.Printf("database error: %v\n", err)
+			return err
+		}
 		break
 
 	case 2:
@@ -445,7 +460,19 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			return err
 		}
 		topic.Tag = tag	
-		TopicLevelMap[string(topicContent)] = topic	
+
+		err = CreateTopicBucket(valHeader.db)
+		if err != nil {
+			log.Printf("database error: %v\n", err)
+			return err
+		}
+
+		err = PutItemsTopicBucket(valHeader.db, string(topic.Name), topic)
+		if err != nil {
+			log.Printf("database error: %v\n", err)
+			return err
+		}
+
 		break
 	case 3:
 		partitionsRec := PartitionRec{} 
@@ -567,40 +594,41 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 		partitionsRec.Tag = tag 
 
-		TopicPartiotionsMap[validId] = append(TopicPartiotionsMap[validId], partitionsRec)
+		err = CreatePartitionBucket(valHeader.db)
+		if err != nil {
+			log.Printf("database error: %v\n", err)
+			return err
+		}
+
+		err = PutItemsPartitionBucket(valHeader.db, string(validId[:]), partitionsRec)
+		if err != nil {
+			log.Printf("database error: %v\n", err)
+			return err
+		}
+
 		break
 	}	
 	
 	return  nil
 }
 
- type ClusterFileRes struct {
-	FeatureRec map[string]FeatureLevelRec
-  TopicLevelRec map[string]TopicLevelRec	
-  PartitionRec map[uuid.UUID][]PartitionRec
-}
-
-func ReadClusterFile() (*ClusterFileRes, error) {
+ func ReadClusterFile(db *bolt.DB) (error) {
 	log.Println("reading cluster file")
-
 	buff, err := readClusterMetaData(PATH)
 	if err != nil {
 		log.Printf("error while reading cluster meta data: %v\n", err)
-		return nil, err 	
+		return err 	
 	}
 
 
-	_, err = processClusterData(buff)
+	_, err = processClusterData(buff, db)
 	if err != nil {
 		log.Printf("error while processing cluster meta data: %v\n", err)
-		return nil, err
+		return err 	
 	}
+
 
 	log.Println("finished reading cluster file")
 
-	return &ClusterFileRes{
-		FeatureRec: FeatureLevelMap,
-		TopicLevelRec: TopicLevelMap,
-		PartitionRec: TopicPartiotionsMap,
-	}, nil
+	return nil
 }

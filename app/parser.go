@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
+
+	"github.com/boltdb/bolt"
 )
 
 //@notes: the function is still under development
@@ -99,14 +101,14 @@ func (c *Conn) handleApiRequest(data []byte)([]byte,error){
 	return buf, nil
 }
 
-func (conn *Conn) handleTopicRequest(data []byte, clusterRec ClusterFileRes)([]byte, error){
+func (conn *Conn) handleTopicRequest(data []byte, db *bolt.DB)([]byte, error){
 	topicReq, err := NewParsedTopicReq(data)
 	if err != nil {
 		log.Printf("error while parsing topic req: %v\n", err)
 		return nil, err
 	}
 
-	topicRes, err := NewTopicResponse(*topicReq, clusterRec)
+	topicRes, err := NewTopicResponse(*topicReq, db)
 	if err != nil {
 		log.Printf("error while creating topic response: %v\n", err)
 		return nil,err

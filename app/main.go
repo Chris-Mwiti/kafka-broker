@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/boltdb/bolt"
 )
 
 type Server struct {
@@ -23,6 +24,22 @@ func NewServer(proto,addr string)(*Server, error){
 func (s *Server) Listen() error {
 	log.Printf("Server listening on %s://%s", s.proto, s.addr)
 
+	//create a new database connection
+	db, err := bolt.Open(".././db/cluster.db", 0766, bolt.DefaultOptions)
+	if err != nil {
+		log.Printf("error while establishing database connection: %v\n", err)
+		return err
+	}
+	//load the cluster metadata file
+  err = ReadClusterFile(db)
+
+	if err != nil {
+		log.Printf("error while processing cluster file: %v\n", err)
+		return nil
+	}
+
+
+
 	for {
 		clientConn, err := s.listener.Accept()
 		if err != nil {
@@ -34,7 +51,7 @@ func (s *Server) Listen() error {
 
 			defer conn.Close()
 
-			clientHandler := &Conn{conn: conn} 
+			clientHandler := &Conn{conn: conn, db: db} 
 			if err := clientHandler.HandleConn(); err != nil {
 				log.Printf("Client handler error: %v", err)
 			}

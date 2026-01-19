@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 
+	"github.com/boltdb/bolt"
 	"github.com/google/uuid"
 )
 
@@ -17,9 +18,9 @@ type TopicResponse struct {
 	tagBuf byte
 }
 
-func NewTopicResponse(req ParsedTopicApiRequest, clusterFileRec ClusterFileRes)(TopicResponse, error){
+func NewTopicResponse(req ParsedTopicApiRequest, db *bolt.DB)(TopicResponse, error){
 	header := NewTopicResponseHeader(req.correlationId)
-	body, err := NewTopicResponseBody(req.topicArrLen, req.topics, clusterFileRec)
+	body, err := NewTopicResponseBody(req.topicArrLen, req.topics, db)
 	
 	if err != nil {
 		log.Printf("error while creating topic response body: %v\n", err)
@@ -180,23 +181,20 @@ func (tp *topicPartition) Encode() ([]byte, error){
 }
 
 //@todo: Later on in the future the loaded topic partitions should be temporarily stored in a in mem db.
-func NewTopicPartitions(topicId [16]byte, topicPartitionRec map[uuid.UUID][]PartitionRec)([]topicPartition, error){
-	valid, err := uuid.ParseBytes(topicId[:])
-
+func NewTopicPartitions(topicId [16]byte, db *bolt.DB)([]topicPartition, error){
+	valid, err := uuid.ParseBytes(topicId[:])	
 	if err != nil {
 		log.Printf("error while parsing topicId: %v\n", err)
 		return nil, errors.New("error while parsing topic id")
 	}
+	partitions, err := GetItemsPartitionBucket(db, valid.String())
+	if err != nil {
+		log.Printf("error while getting items from partition: %v\n", err)
+		return nil, err
+	}
 
 	topicPartitions := make([]topicPartition, 0)
-
-	//this might be a critical breaking point for the application
-	partitions, ok := topicPartitionRec[valid]
-	if !ok {
-		return nil, errors.New("partitions for this topic are not found")
-	}  
-
-	for _, partition := range partitions {
+	for _, partition := range *partitions {
 		topicPartition := new(topicPartition)
 
 		topicPartition.errorCode = 0
@@ -220,7 +218,7 @@ type topicResponseBody struct {
 	topics []ResponseTopic
 }
 
-func NewTopicResponseBody(topicArrLen uint8, topics []Topic, clusterFileRec ClusterFileRes) (*topicResponseBody, error){
+func NewTopicResponseBody(topicArrLen uint8, topics []Topic, db *bolt.DB) (*topicResponseBody, error){
 	log.Printf("topics: %v\n", topics)
 
 	//here am probably gonna get an error...but it generally does is 
@@ -228,18 +226,18 @@ func NewTopicResponseBody(topicArrLen uint8, topics []Topic, clusterFileRec Clus
 	if topicArrLen > 0 {
 		for i := 0; i < int(topicArrLen); i++ {
 			topic := topics[i]
-			storedTopic, ok := clusterFileRec.TopicLevelRec[string(topic.name)] 
+			storedTopic, err := GetItemTopicBucket(db, string(topic.name)) 
 
-			if !ok {
-				log.Printf("topic not found")
-				return nil, errors.New("topic not found")
+			if err != nil {
+				log.Printf("topic not found: %v\n", err)
+				return nil, errors.Join(errors.New("topic not found"), err)
 			}
 
 
 			isInternal := uint8(0)
 			topicAuthOps := int32(0)
 			tagBuf := uint8(0)
-			partitionsArr, err := NewTopicPartitions(storedTopic.Id, clusterFileRec.PartitionRec)
+			partitionsArr, err := NewTopicPartitions(storedTopic.Id, db)
 			if err != nil {
 				return nil, err
 			}
