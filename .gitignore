@@ -1,1 +1,8 @@
-app/kafka-go.*
+# Binaries and executables
+*.exe
+*.bin
+*.o
+*.a
+# Add other patterns as needed, e.g., for build outputs
+build/
+target/
