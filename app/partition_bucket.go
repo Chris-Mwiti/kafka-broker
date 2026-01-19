@@ -32,7 +32,6 @@ func PutItemsPartitionBucket(db *bolt.DB, key string, item PartitionRec)(error){
 		if bucket == nil {
 			return errors.New("bucket does not exist")
 		}
-
 		existingBytes := bucket.Get([]byte(key))
 
 		var items []PartitionRec
@@ -63,7 +62,7 @@ func PutItemsPartitionBucket(db *bolt.DB, key string, item PartitionRec)(error){
 		log.Printf("error: %v\n", err)
 		return err
 	}
-	 return nil
+ return nil
 }
 
 func GetItemsPartitionBucket(db *bolt.DB, key string)(*[]PartitionRec,error){
