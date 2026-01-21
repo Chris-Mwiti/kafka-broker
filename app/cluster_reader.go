@@ -319,26 +319,28 @@ func newRecordReader(buff *bytes.Buffer, db *bolt.DB)(*Record, error){
 	}
 	record.ValLen = valLen
 
-	//here we are gonna make a copy of the val cont for manipulation
-	//then after that we are gonna store the original content
-	val := make([]byte, valLen)
-	if _, err := buff.Read(val); err != nil {
-		log.Printf("error while reading val: %v\n", err)
-		return nil, errors.New("error while extracting val")
-	}
-	record.Val = val
+	if valLen > 0 {
+		//here we are gonna make a copy of the val cont for manipulation
+		//then after that we are gonna store the original content
+		val := make([]byte, valLen)
+		if _, err := buff.Read(val); err != nil {
+			log.Printf("error while reading val: %v\n", err)
+			return nil, errors.New("error while extracting val")
+		}
+		record.Val = val
 
-	//create a new buff for val content manipulation
-	valBuff := bytes.NewBuffer(val)
-	valHeader, err := newValHeader(valBuff, db)
-	if err != nil {
-		log.Printf("error while creating val header: %v\n", err)
-		return nil, errors.New("error while creating val header")
-	}
-	err = valHeader.processType(valBuff)
-	if err != nil {
-		log.Printf("error while processing record type: %v\n", err)
-		return nil, errors.New("error while processing record type")
+		//create a new buff for val content manipulation
+		valBuff := bytes.NewBuffer(val)
+		valHeader, err := newValHeader(valBuff, db)
+		if err != nil {
+			log.Printf("error while creating val header: %v\n", err)
+			return nil, errors.New("error while creating val header")
+		}
+		err = valHeader.processType(valBuff)
+		if err != nil {
+			log.Printf("error while processing record type: %v\n", err)
+			return nil, errors.New("error while processing record type")
+		}
 	}
 
 	headersArrCount, err := buff.ReadByte()
