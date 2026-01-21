@@ -33,7 +33,7 @@ func NewTopicResponse(req ParsedTopicApiRequest, db *bolt.DB)(TopicResponse, err
 		msgSize: uint32(0),
 		header: header,
 		body: *body,
-		cursor: int8(cursor),
+		cursor: cursor,
 		tagBuf: tagBuf,
 	}, nil
 }

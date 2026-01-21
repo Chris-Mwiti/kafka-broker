@@ -164,7 +164,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		topicArrLen: topicsArrLen,
 		topics: topics,
 		responsePartitionLimit: responsePartLimit,
-		cursor: cursor,
+		cursor: int8(cursor),
 		tagBuf: tagBuf,
 	}, nil
 }
