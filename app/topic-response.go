@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/boltdb/bolt"
-	"github.com/google/uuid"
 )
 
 type TopicResponse struct {
@@ -184,12 +183,8 @@ func (tp *topicPartition) Encode() ([]byte, error){
 
 //@todo: Later on in the future the loaded topic partitions should be temporarily stored in a in mem db.
 func NewTopicPartitions(topicId [16]byte, db *bolt.DB)([]topicPartition, error){
-	valid, err := uuid.ParseBytes(topicId[:])	
-	if err != nil {
-		log.Printf("error while parsing topicId: %v\n", err)
-		return nil, errors.New("error while parsing topic id")
-	}
-	partitions, err := GetItemsPartitionBucket(db, valid.String())
+
+	partitions, err := GetItemsPartitionBucket(db, string(topicId[:]))
 	if err != nil {
 		log.Printf("error while getting items from partition: %v\n", err)
 		return nil, err
