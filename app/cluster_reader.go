@@ -454,8 +454,9 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			return err
 		}
 		topic.Name = topicContent	
+
 		lR := io.LimitReader(valBuff, 16)
-		var topicId []byte
+		topicId := make([]byte, 16)
 		if _, err := lR.Read(topicId); err != nil {
 			log.Printf("error while limit reading the topic uuid: %v\n", err)
 			return err
