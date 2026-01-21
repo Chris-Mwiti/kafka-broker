@@ -445,6 +445,8 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 		topic.NameLen = topicNameLen	
 
+		topicNameLen--
+
 		topicContent := make([]byte, topicNameLen)
 		if _, err := valBuff.Read(topicContent); err != nil {
 			log.Printf("error while reading topic content: %v\n", err)
@@ -515,9 +517,12 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			log.Printf("error while creating replic arr len %v\n", err)
 			return errors.New("error while extracting replic arr len")
 		}
+
+		replicArrlen--
 	  partitionsRec.ReplicArrLen = replicArrlen
-		replicArr := make([]int32, replicArrlen - 1)
-		for i := 0; i < int(replicArrlen - 1); i++ {
+
+		replicArr := make([]int32, replicArrlen)
+		for i := 0; i < int(replicArrlen); i++ {
 			var replic int32
 			if err := binary.Read(valBuff, binary.BigEndian, &replic); err != nil {
 				log.Printf("error while extracting to replic buff: %v\n", err)
@@ -532,9 +537,12 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			log.Printf("error while creating in sync replic arr len %v\n", err)
 			return errors.New("error while extracting  in sync replic arr len")
 		}
+
+		inSyncArrLen--
 	  partitionsRec.SyncReplicArrLen = inSyncArrLen
-		inSyncArr := make([]int32, inSyncArrLen - 1)
-		for i := 0; i < int(replicArrlen - 1); i++ {
+
+		inSyncArr := make([]int32, inSyncArrLen)
+		for i := 0; i < int(replicArrlen); i++ {
 			var sync int32
 			if err := binary.Read(valBuff, binary.BigEndian, &sync); err != nil {
 				log.Printf("error while extracting to in sync replic buff: %v\n", err)
@@ -549,13 +557,15 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			log.Printf("error while reading remReplicArr: %v\n", err)
 			return err
 		}
-	  partitionsRec.RemoveReplicaLenArr = remReplicArr - 1
+		remReplicArr--
+	  partitionsRec.RemoveReplicaLenArr = remReplicArr 
 
 		addReplicArr, err := ReadVariant(valBuff) 
 		if err != nil {
 			log.Printf("error while reading addReplicArr: %v\n", err)
 			return err
 		}
+		addReplicArr--
 		partitionsRec.AddReplicaArr = addReplicArr
 
 		var leaderId int32
@@ -584,11 +594,12 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			log.Printf("error while creating in sync replic arr len %v\n", err)
 			return errors.New("error while extracting  in sync replic arr len")
 		}
+		directoriesArrLen--
 		partitionsRec.DirectoriesLen = directoriesArrLen
 
 
-		directoriesArr := make([][]byte,  directoriesArrLen- 1)
-		for i := 0; i < int(directoriesArrLen - 1); i++ {
+		directoriesArr := make([][]byte,  directoriesArrLen)
+		for i := 0; i < int(directoriesArrLen); i++ {
 			var dir []byte
 			lR := io.LimitReader(valBuff, 16)
 			if _,err := lR.Read(dir); err != nil {

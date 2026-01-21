@@ -135,6 +135,7 @@ func (tp *topicPartition) Encode() ([]byte, error){
 		return nil, err
 	}
 
+	tp.replicArrlen++
 	if err := binary.Write(buff, binary.BigEndian, tp.replicArrlen); err != nil {
 		log.Printf("error while writing replicaArr len: %v\n", err)
 		return nil, err
@@ -145,6 +146,7 @@ func (tp *topicPartition) Encode() ([]byte, error){
 		return nil, err
 	}
 
+	tp.isrArrLen++
 	if err := binary.Write(buff, binary.BigEndian, tp.isrArrLen); err != nil {
 		log.Printf("error while writing isrArrLen: %v\n", err)
 		return nil, err
@@ -156,17 +158,17 @@ func (tp *topicPartition) Encode() ([]byte, error){
 	}
 
 	//there might be an error in this section....can't find the elr from the source partition
-	if err := binary.Write(buff, binary.BigEndian, tp.lastKnowELR); err != nil {
+	if err := binary.Write(buff, binary.BigEndian, len(tp.lastKnowELR)); err != nil {
 		log.Printf("error while writing last known elr: %v\n", err)
 		return nil, err
 	}
 
-	if err := binary.Write(buff, binary.BigEndian, tp.lastKnowELR); err != nil {
+	if err := binary.Write(buff, binary.BigEndian, len(tp.lastKnowELR)); err != nil {
 		log.Printf("error while writing last know elr: %v\n", err)
 		return nil, err
 	}
 
-	if err := binary.Write(buff, binary.BigEndian, tp.offlineRepl); err != nil {
+	if err := binary.Write(buff, binary.BigEndian, len(tp.offlineRepl)); err != nil {
 		log.Printf("error while writing offline leader replica: %v\n", err)
 		return nil, err
 	}
