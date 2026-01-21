@@ -564,6 +564,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 
 		var leaderId int32
 	  if err := binary.Read(valBuff, binary.BigEndian, &leaderId); err != nil {
+
 			log.Printf("error while reading leaderId: %v\n", err)
 			return err
 		}
