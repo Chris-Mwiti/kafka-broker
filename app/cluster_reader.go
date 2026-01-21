@@ -301,6 +301,8 @@ func newRecordReader(buff *bytes.Buffer, db *bolt.DB)(*Record, error){
 	}
 	record.KeyLen = keyLen
 
+	log.Printf("record key len: %v\n", record.KeyLen)
+
 	key := make([]byte, keyLen)
 	
 	if _, err := buff.Read(key); err != nil {
