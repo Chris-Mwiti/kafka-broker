@@ -498,18 +498,13 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 
 		lR := io.LimitReader(valBuff, 16)
-		var topicId []byte
+		topicId := make([]byte, 16)
 		if _, err := lR.Read(topicId); err != nil {
 			log.Printf("error while limit reading the topic uuid: %v\n", err)
 			return err
 		}
-		//parse the uuid and check whether it is a valid uuid
-		validId, err := uuid.ParseBytes(topicId)
-		if err != nil {
-			log.Printf("error while parsing topic id: %v\n", err)
-			return errors.New("error while parsing topic id")
-		}
-		partitionsRec.TopicId = validId
+		
+		partitionsRec.TopicId = [16]byte(topicId)
 
 		replicArrlen, err := ReadVariant(valBuff) 
 		if err != nil {
