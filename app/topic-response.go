@@ -29,6 +29,8 @@ func NewTopicResponse(req ParsedTopicApiRequest, db *bolt.DB)(TopicResponse, err
 	tagBuf := uint8(0)
 	cursor := req.cursor
 
+	log.Printf("res cursor: %v\n", cursor)
+
 	return TopicResponse{
 		msgSize: uint32(0),
 		header: header,
