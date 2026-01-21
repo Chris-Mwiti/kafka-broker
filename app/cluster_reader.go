@@ -382,6 +382,7 @@ func newValHeader(valBuff *bytes.Buffer, db *bolt.DB)(*ValHeader, error){
 
 
 func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
+	log.Printf("val header record type: %v\n", valHeader.RecordType)
 
 	switch valHeader.RecordType {
 	case 12:
