@@ -447,6 +447,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 
 		topicNameLen--
 
+		log.Printf("topic name len: %v\n", topicNameLen)
 		topicContent := make([]byte, topicNameLen)
 		if _, err := valBuff.Read(topicContent); err != nil {
 			log.Printf("error while reading topic content: %v\n", err)
