@@ -617,7 +617,7 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			return err
 		}
 
-		err = PutItemsPartitionBucket(valHeader.db, string(validId[:]), partitionsRec)
+		err = PutItemsPartitionBucket(valHeader.db, string(topicId), partitionsRec)
 		if err != nil {
 			log.Printf("database error: %v\n", err)
 			return err
