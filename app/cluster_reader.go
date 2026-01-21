@@ -462,6 +462,8 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 			return err
 		}
 
+		log.Printf("topic id bytes: %v\n", topicId)
+
 		//parse the uuid and check whether it is a valid uuid
 		validId, err := uuid.ParseBytes(topicId)
 		if err != nil {
