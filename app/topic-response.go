@@ -13,7 +13,7 @@ type TopicResponse struct {
 	msgSize uint32
 	header topicResponseHeader
 	body topicResponseBody
-	cursor uint8
+	cursor int8
 	tagBuf byte
 }
 
@@ -32,7 +32,7 @@ func NewTopicResponse(req ParsedTopicApiRequest, db *bolt.DB)(TopicResponse, err
 		msgSize: uint32(0),
 		header: header,
 		body: *body,
-		cursor: 0xff,
+		cursor: -1,
 		tagBuf: tagBuf,
 	}, nil
 }
