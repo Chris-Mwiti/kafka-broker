@@ -143,6 +143,7 @@ func NewParsedTopicReq(payload []byte)(*ParsedTopicApiRequest, error){
 		log.Printf("error while reading curson: %v\n", err)
 		return nil, errors.New("error while parsing cursor")
 	}
+	log.Printf("cursor: %v\n", int8(cursor))
 
 	var tagBuf uint8
 	if err := binary.Read(reader, binary.BigEndian, &tagBuf); err != nil {
