@@ -397,6 +397,9 @@ func (valHeader *ValHeader) processType(valBuff *bytes.Buffer)(error){
 		}
 		feature.NameLen = nameLen	
 
+		//since the name is usually compact:
+		nameLen--
+
 		name := make([]byte, nameLen)
 		if _, err := valBuff.Read(name); err != nil {
 			log.Printf("error while reading name content: %v\n", err)
