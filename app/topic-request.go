@@ -18,7 +18,7 @@ type ParsedTopicApiRequest struct {
 	topicArrLen uint8
 	topics []Topic
 	responsePartitionLimit uint32
-	cursor uint8
+	cursor int8
 	tagBuf byte
 }
 
