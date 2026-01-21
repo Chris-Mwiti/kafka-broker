@@ -320,6 +320,7 @@ func newRecordReader(buff *bytes.Buffer, db *bolt.DB)(*Record, error){
 	record.ValLen = valLen
 
 	if valLen > 0 {
+		log.Printf("record val len: %v\n", valLen)
 		//here we are gonna make a copy of the val cont for manipulation
 		//then after that we are gonna store the original content
 		val := make([]byte, valLen)
